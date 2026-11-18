@@ -105,40 +105,54 @@ class OpenRouterProvider:
     def generate_structured(self, req: Request) -> AIResult:
         t0 = time.monotonic()
         safe_task = re.sub(r"[^a-zA-Z0-9_-]", "_", req.task_type)[:64] or "structured_response"
-        payload = {
-            "model": self.model,
-            "messages": [{"role": "system", "content": req.system}, {"role": "user", "content": req.user}],
-            "max_tokens": req.max_output_tokens,
-            "provider": {"require_parameters": True},
-        }
-        if self.model == "google/gemma-4-31b-it:free":
-            # This free endpoint supports JSON mode but not provider-enforced JSON Schema.
-            # Keep schema validation in our API and provide the schema in the prompt.
-            payload["messages"][0]["content"] += (
-                "\nReturn exactly one JSON object matching this JSON Schema, with no markdown: "
+        # Free-tier models on OpenRouter support json_object mode but may not enforce strict JSON Schema.
+        # Pass schema in the system prompt so the model can follow it even without server-side enforcement.
+        is_free = self.model.endswith(":free")
+        system_content = req.system
+        if is_free:
+            system_content += (
+                "\nReturn exactly one JSON object matching this JSON Schema, with no markdown fences or extra text: "
                 + json.dumps(req.schema, ensure_ascii=False)
             )
-            payload["response_format"] = {"type": "json_object"}
-        else:
-            payload["response_format"] = {"type": "json_schema", "json_schema": {
-                "name": safe_task, "strict": True, "schema": req.schema}}
-        try:
-            response = self._httpx.post(self._url, headers=self._headers, json=payload, timeout=self._timeout)
-            response.raise_for_status()
-            body = response.json()
-        except self._httpx.TimeoutException as e:
-            raise ProviderError("OpenRouter request timed out") from e
-        except self._httpx.HTTPStatusError as e:
-            code = e.response.status_code
-            if code == 402:
-                raise ProviderError("OpenRouter rejected this run with HTTP 402 (billing or credit limit). Add credits/check the account billing; no analysis result was created.", status_code=402) from e
-            if code == 429:
-                raise ProviderError("OpenRouter rate limit reached. Wait briefly and retry; no analysis result was created.", status_code=429) from e
-            if code in (401, 403):
-                raise ProviderError(f"OpenRouter rejected the API credential or model access (HTTP {code}); check provider settings.") from e
-            raise ProviderError(f"OpenRouter request failed (HTTP {code}); check key, model, and structured-output support") from e
-        except (self._httpx.HTTPError, ValueError) as e:
-            raise ProviderError("OpenRouter returned an invalid response") from e
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "system", "content": system_content}, {"role": "user", "content": req.user}],
+            "max_tokens": req.max_output_tokens,
+            "provider": {"require_parameters": True},
+            "response_format": (
+                {"type": "json_object"}
+                if is_free
+                else {"type": "json_schema", "json_schema": {"name": safe_task, "strict": True, "schema": req.schema}}
+            ),
+        }
+        last_exc: Exception | None = None
+        for attempt in range(3):
+            try:
+                response = self._httpx.post(self._url, headers=self._headers, json=payload, timeout=self._timeout)
+                response.raise_for_status()
+                body = response.json()
+                last_exc = None
+                break
+            except self._httpx.TimeoutException as e:
+                raise ProviderError("OpenRouter request timed out") from e
+            except self._httpx.HTTPStatusError as e:
+                code = e.response.status_code
+                if code == 429 and attempt < 2:
+                    # Exponential backoff: 2s, 4s before final attempt
+                    time.sleep(2 ** (attempt + 1))
+                    last_exc = e
+                    continue
+                if code == 402:
+                    raise ProviderError("OpenRouter rejected this run with HTTP 402 (billing or credit limit). Add credits/check the account billing; no analysis result was created.", status_code=402) from e
+                if code == 429:
+                    raise ProviderError("OpenRouter rate limit reached. Wait briefly and retry; no analysis result was created.", status_code=429) from e
+                if code in (401, 403):
+                    raise ProviderError(f"OpenRouter rejected the API credential or model access (HTTP {code}); check provider settings.") from e
+                raise ProviderError(f"OpenRouter request failed (HTTP {code}); check key, model, and structured-output support") from e
+            except (self._httpx.HTTPError, ValueError) as e:
+                raise ProviderError("OpenRouter returned an invalid response") from e
+        if last_exc is not None:
+            raise ProviderError("OpenRouter rate limit reached. Wait briefly and retry; no analysis result was created.", status_code=429) from last_exc
 
         choices = body.get("choices") or []
         if not choices or not isinstance(choices[0], dict):
@@ -166,6 +180,81 @@ class OpenRouterProvider:
                         output_tokens=int(usage.get("completion_tokens", 0) or 0),
                         latency_ms=int((time.monotonic() - t0) * 1000), raw_text=content,
                         reported_cost_usd=float(reported_cost) if reported_cost is not None else None)
+
+
+class GeminiProvider:
+    """Google Gemini via the google-genai SDK, using controlled generation (JSON schema)."""
+    name = "gemini"
+
+    # Keys not supported by Gemini's response_schema dialect.
+    _UNSUPPORTED = frozenset({"additionalProperties", "$schema", "$id", "title", "definitions", "$defs"})
+
+    def __init__(self, s: Settings) -> None:
+        from google import genai
+        self.model = s.ai_model or "gemini-3.1-flash-lite"
+        self._client = genai.Client(api_key=s.gemini_api_key)
+        self._timeout = s.ai_timeout_s
+
+    @classmethod
+    def _clean_schema(cls, schema: Any) -> Any:
+        """Recursively remove JSON Schema keys unsupported by Gemini's dialect."""
+        if isinstance(schema, dict):
+            return {k: cls._clean_schema(v) for k, v in schema.items() if k not in cls._UNSUPPORTED}
+        if isinstance(schema, list):
+            return [cls._clean_schema(item) for item in schema]
+        return schema
+
+    def generate_structured(self, req: Request) -> AIResult:
+        from google import genai
+        from google.genai import types
+        t0 = time.monotonic()
+        config = types.GenerateContentConfig(
+            system_instruction=req.system,
+            response_mime_type="application/json",
+            response_schema=self._clean_schema(req.schema),
+            max_output_tokens=req.max_output_tokens,
+        )
+        resp = None
+        for attempt in range(3):
+            try:
+                resp = self._client.models.generate_content(
+                    model=self.model,
+                    contents=req.user,
+                    config=config,
+                )
+                break
+            except Exception as e:
+                cls_name = type(e).__name__
+                msg = str(e)
+                if ("429" in msg or "quota" in msg.lower() or "rate" in msg.lower() or "503" in msg or "unavailable" in msg.lower() or "high demand" in msg.lower()) and attempt < 2:
+                    time.sleep(2 ** (attempt + 1))
+                    continue
+                if "429" in msg or "quota" in msg.lower() or "rate" in msg.lower():
+                    raise ProviderError("Gemini rate limit reached. Wait briefly and retry.", status_code=429) from e
+                if "503" in msg or "unavailable" in msg.lower():
+                    raise ProviderError("Gemini service temporarily overloaded. Please retry in a few seconds.", status_code=503) from e
+                if "403" in msg or ("invalid" in msg.lower() and "key" in msg.lower()):
+                    raise ProviderError("Gemini API key is invalid or lacks permission.", status_code=403) from e
+                raise ProviderError(f"Gemini provider error: {cls_name}: {msg[:200]}") from e
+        if resp is None:
+            raise ProviderError("Gemini did not return a response.")
+        latency = int((time.monotonic() - t0) * 1000)
+        text = resp.text or ""
+        if not text.strip():
+            raise ProviderError("Gemini returned empty output")
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as e:
+            raise ProviderError("Gemini returned non-JSON output") from e
+        usage = resp.usage_metadata
+        input_tok = getattr(usage, "prompt_token_count", 0) or 0
+        output_tok = getattr(usage, "candidates_token_count", 0) or 0
+        return AIResult(
+            data=data, provider=self.name, model=self.model,
+            request_id=None,
+            input_tokens=input_tok, output_tokens=output_tok,
+            latency_ms=latency, raw_text=text,
+        )
 
 
 _INJECTION = re.compile(r"(ignore (all |any )?(previous|prior|above) instructions|disregard .{0,30}instructions|"
@@ -278,4 +367,6 @@ def get_provider() -> Provider:
         return AnthropicProvider(s)
     if s.ai_provider == "openrouter":
         return OpenRouterProvider(s)
+    if s.ai_provider == "gemini":
+        return GeminiProvider(s)
     return MockProvider()

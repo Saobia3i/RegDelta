@@ -1,33 +1,37 @@
-﻿# RegDelta Prototype Walkthrough — 90-second recording script
+﻿# RegDelta — Real PDF Analysis Walkthrough (English)
 
-**Format:** 90 seconds, 1920×1080, MP4, English captions, optional English voiceover. Keep the browser and result readable; do not show `.env`, passwords, API tokens, or private client data.
+**Target length:** 85 seconds · **Capture:** 1920×1080, MP4, no desktop audio required.
 
-## Before recording
+## Recording preflight
 
-1. Open RegDelta at `http://127.0.0.1:5173`, sign in, and open **Regulatory changes**.
-2. Confirm OpenRouter has enough credit for a real request. The last attempt returned HTTP 402; if that still happens, add provider credit and run again. Do not present a generated result unless the request succeeds.
-3. Click **Load synthetic sample policy**. It is labeled SAMPLE and safe for recording. If using another policy, use only a file approved for the configured AI provider.
-4. Choose a workspace only if the account has more than one. It is a data scope, not a role.
-5. Click **Analyze policy impact** and wait for a successful Gemini result before recording.
-6. Use the actual IDs, statuses, quotes, model, latency, and cost displayed by this run. The current prototype assesses the 12 most relevant candidates from 211 crosswalk rows. Do not claim full recall or a specific pair such as `PR.AC-1 → PR.AA-01` unless that pair is visible in the result.
+1. Start the FastAPI backend and Vite frontend. Open `http://127.0.0.1:5173` and sign in.
+2. Upload the real NIST Cybersecurity Framework (CSF) 2.0 PDF. The repository includes `frontend/public/recording-input/NIST-CSF-2.0.pdf` (32 pages, 106 subcategories); select it in the file picker. It is not preloaded into the page.
+3. Wait for FastAPI to extract the PDF. Confirm the displayed filename, SHA-256, page count, and parsed section count match the selected file.
+4. The code engine compares the uploaded CSF 2.0 section text to the bundled public CSF 1.1 core. Precision and recall are measured against NIST OLIR relationships for this version pair only.
+5. Click **Generate AI summary and action plan**. The latest observed OpenRouter response was HTTP 429. Record the AI portions below only after a real request succeeds and the result plus quote verification are visible. Do not use a canned response.
 
-## Nine shots · 1:30 total
+## Nine shots · 1:25 total
 
 | Shot / time | Screen action | Voiceover |
 |---|---|---|
-| **1 · 00:00–00:08 · Detect** | Open the Regulatory changes page; frame RegDelta and the NIST CSF 1.1 → 2.0 source pack. | “RegDelta connects regulatory framework changes to client policies and agency actions.” |
-| **2 · 00:08–00:18 · Change list** | Show the NIST source link and 211-row crosswalk count. | “This prototype uses the public NIST CSF 1.1 to 2.0 transition crosswalk.” |
-| **3 · 00:18–00:30 · Input / live processing** | Load the labeled synthetic policy, show its label, select a workspace only if needed, click **Analyze policy impact**, and show the real loading state. | “I’m providing a synthetic client policy. Gemini assesses it against the framework changes.” |
-| **4 · 00:30–00:41 · Impact map** | Show the dashboard, `assessed / 211` count, status chart, then an actual returned change and status. | “This run assesses the 12 changes most relevant to the policy. This shortlist does not represent full framework recall.” |
-| **5 · 00:41–00:52 · DRAFT and verifier** | Open a result card. Show its actual before/after requirement, rationale, proposed policy change, remediation task, and verified quote—or Needs human review if no quote verified. | “Each finding includes its rationale and a proposed fix. An unverified quote is not shown as evidence.” |
-| **6 · 00:52–01:07 · Bangla summary, shown twice** | **00:52–00:57:** zoom the Bangla summary for five seconds. **00:57–01:02:** show the English DRAFT recommendation. **01:02–01:07:** show the Bangla summary again inside the full result. | **00:52:** “This is the Bangla action-plan summary for the agency.” **00:57:** “All recommendations are drafts, not final compliance decisions.” **01:02:** “The Bangla action plan briefly explains the gaps and suggested work.” |
-| **7 · 01:07–01:14 · Approve / edit / reject gate** | Show workflow step 6: **Human approval — Consultant required**. Do not imply the buttons are implemented for these findings. | “Approve, edit, and reject are not yet connected to this workflow, so findings remain drafts for review.” |
-| **8 · 01:14–01:20 · GitHub action gate** | Show workflow step 7: **Act after approval — Not triggered**. Do not show a fake issue. | “GitHub issue creation is not connected yet, and no external action has been taken.” |
-| **9 · 01:20–01:30 · Run log** | Show the actual provider/model, latency, cost, and request ID at the bottom of the result. | “These are the model and usage details for this live run. All output is for human review.” |
+| **1 · 00:00–00:08 · Detect** | Show Regulatory Document Analysis before file selection; the comparison panel is empty. | “This is RegDelta’s document analysis flow. No change list or AI answer is shown before I provide a source file.” |
+| **2 · 00:08–00:18 · Ingest** | Select `NIST-CSF-2.0.pdf`. Wait for parsing, then show the actual name, page count, extracted sections, and file hash. | “I’m uploading the NIST Cybersecurity Framework 2.0 PDF. FastAPI reads this file and displays its fingerprint and the sections it extracted.” |
+| **3 · 00:18–00:28 · Change list** | Show the uploaded-file label, section counts, code comparison metrics, and detected-change totals. | “The code engine compares the uploaded CSF 2.0 text with the public CSF 1.1 core. These results appear only after the upload has been parsed.” |
+| **4 · 00:28–00:38 · Inspect a change** | Open a row and its word-level diff. Show `PR.AC-1 → PR.AA-01` only if that pair appears in this run. | “Here I can inspect the matched sections and the exact wording differences. An unclear match is flagged for review rather than presented as a certain relationship.” |
+| **5 · 00:38–00:47 · Start AI processing** | Click **Generate AI summary and action plan** and show the live loading state. | “Now I’m sending this same uploaded PDF to the configured model for a summary, Bangla action plan, draft recommendations, and source quotations.” |
+| **6 · 00:47–00:52 · DRAFT and verifier** | On success, show actual draft actions and one returned citation marked as verified. On error, keep the error visible and do not claim a draft or verified quote. | “RegDelta checks each returned quote against the extracted text on its stated page. These recommendations remain drafts for human review.” |
+| **7 · 00:52–00:57 · Bangla summary, first view** | Show the actual generated Bangla summary for five seconds. | “This is the Bangla summary generated from the uploaded document.” |
+| **8 · 00:57–01:12 · Human and external-action gates** | Show the complete result, including the Bangla summary again at **01:02–01:07**. Then show the human-review and external-action workflow gates. | “The Bangla summary is shown again inside the full result. Approval and GitHub issue creation are not connected to this workflow, so all output stays a draft and no external action is taken.” |
+| **9 · 01:12–01:25 · Run log and scope** | Show the actual provider/model, latency, token counts, cost if reported, then the workflow gate. | “This run log shows the actual provider and usage metadata. This flow compares framework text; it does not yet produce a client-policy impact map or create GitHub issues.” |
 
-## Keep the claims accurate
+## If OpenRouter still returns HTTP 429
 
-- The app assesses up to 12 relevant candidates from the 211-row public crosswalk; it does not map all rows in this prototype.
-- Say “evidence found/missing,” “potential conflict,” or “needs human review.” Never say a client is compliant.
-- Approval and GitHub actions are visible as gated workflow steps, but are not connected to these findings yet.
-- If OpenRouter returns an error (including HTTP 402), stop and fix the provider account before recording. Do not replace the result with sample or hardcoded output.
+Show the real rate-limit error after the live request. Do not narrate or display a generated English summary, Bangla summary, draft action, or citation unless that result actually exists. You can still record the successful file ingestion and code comparison, but a video that needs to prove AI-generated Bangla output is not complete until a real model request succeeds.
+
+## Accuracy notes
+
+- The repository's public recording PDF has 32 pages and 106 CSF 2.0 subcategories. Other files can have different counts and must pass backend validation.
+- Do not narrate fixed findings, metrics, or a specific section pair unless it is visible in the current uploaded-file result.
+- Precision/recall are comparison-run measurements against NIST OLIR relationships for this source pair, not universal model quality or client-policy recall.
+- Exact-quote verification proves that text appears on the stated extracted page. It does not validate legal interpretation or recommendation quality.
+- The current flow has no connected approve/edit/reject action for these findings, no client-policy impact map, and no GitHub issue creation.

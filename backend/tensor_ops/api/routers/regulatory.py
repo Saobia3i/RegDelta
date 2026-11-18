@@ -18,6 +18,7 @@ from ...ai.provider import ProviderError, Request, get_provider
 from ...ai.tasks import OverBudget, _check_budget, _spent_today
 from ...config import get_settings
 from ...models import AIRun
+from ...services.regulatory_compare import compare_frameworks
 from ...security.authz import Principal
 from ..deps import get_db, limit, principal
 
@@ -42,9 +43,14 @@ OUTPUT_SCHEMA: dict[str, Any] = {
 NIST_CROSSWALK = json.loads((Path(__file__).resolve().parents[2] / "content" / "regulatory" / "nist_csf_11_20_crosswalk.json").read_text(encoding="utf-8"))
 IMPACT_SCHEMA: dict[str, Any] = {
     "type": "object", "additionalProperties": False,
-    "required": ["summary", "bangla_summary", "changes"],
+    "required": ["summary", "bangla_summary", "changes", "borderline_classifications"],
     "properties": {
         "summary": {"type": "string"}, "bangla_summary": {"type": "string"},
+        "borderline_classifications": {"type": "array", "items": {"type": "object", "additionalProperties": False,
+            "required": ["old_id", "new_id", "classification", "rationale"], "properties": {
+                "old_id": {"type": "string"}, "new_id": {"type": "string"},
+                "classification": {"type": "string", "enum": ["changed", "reworded", "renumbered", "unresolved"]},
+                "rationale": {"type": "string"}}}},
         "changes": {"type": "array", "items": {"type": "object", "additionalProperties": False,
             "required": ["row_id", "impact_status", "rationale", "confidence", "policy_quote", "policy_quote_page", "recommended_policy_change", "remediation_task"],
             "properties": {
@@ -196,6 +202,57 @@ def _rank_transitions(policy_text: str, limit_count: int = 12) -> list[dict[str,
     return [dict(row, policy_relevance=round(score, 4)) for score, row in ranked[:limit_count]]
 
 
+def _parse_csf20_subcategories(pages: list[dict[str, Any]]) -> list[dict[str, str]]:
+    text = "\n".join(str(page.get("text") or "") for page in pages)
+    flattened = re.sub(r"\s+", " ", text).casefold()
+    if "cybersecurity framework (csf) 2.0" not in flattened:
+        raise HTTPException(422, "This comparison input must be the NIST Cybersecurity Framework (CSF) 2.0 document.")
+    # PDF text extractors sometimes insert spaces inside identifiers such as
+    # `P R.AT -01`; normalize only the strict two-letter CSF ID pattern.
+    text = re.sub(r"\b([A-Z])\s*([A-Z])\s*\.\s*([A-Z])\s*([A-Z])\s*-\s*(\d{1,2})\b",
+                  lambda m: f"{m.group(1)}{m.group(2)}.{m.group(3)}{m.group(4)}-{int(m.group(5)):02d}", text)
+    headers = list(re.finditer(r"(?m)^[ \t]*o\s*([A-Z]{2}\.[A-Z]{2}-\d{2})\s*:\s*(.*)$", text))
+    if len({m.group(1) for m in headers}) < 100:
+        raise HTTPException(422, f"Only {len({m.group(1) for m in headers})} CSF 2.0 subcategories could be extracted; no comparison was generated.")
+    expected = {row["id"] for row in NIST_CROSSWALK["frameworkSubcategories"]["csf20"]}
+    parsed_ids = {m.group(1) for m in headers}
+    if parsed_ids != expected:
+        raise HTTPException(422, f"The uploaded PDF did not yield the complete expected CSF 2.0 inventory ({len(parsed_ids)}/{len(expected)} sections). No comparison was generated.")
+    sections: dict[str, str] = {}
+    for i, match in enumerate(headers):
+        end = headers[i + 1].start() if i + 1 < len(headers) else len(text)
+        following = text[match.end():end]
+        lines = [match.group(2), *following.splitlines()]
+        lines = [line.strip() for line in lines
+                 if line.strip() and not re.search(r"NIST CSWP 29|The NIST Cybersecurity Framework \(CSF\) 2\.0|February 26, 2024|^\d{1,3}$", line.strip(), re.I)]
+        description = " ".join(lines)
+        description = re.sub(r"(?<=\w)-\s+(?=\w)", "", description)
+        sections[match.group(1)] = re.sub(r"\s+", " ", description).strip()
+    if any(not text for text in sections.values()):
+        raise HTTPException(422, "A CSF 2.0 section had no extractable description; no comparison was generated.")
+    return [{"id": section_id, "text": section_text} for section_id, section_text in sorted(sections.items())]
+
+
+@router.post("/regulatory/compare-framework-upload", dependencies=[Depends(limit("regulatory_analysis", 10))])
+async def compare_framework_upload(
+    file: UploadFile = File(...),
+    tenant_id: uuid.UUID = Form(...),
+    p: Principal = Depends(principal),
+) -> dict[str, Any]:
+    """Compare uploaded CSF 2.0 PDF text to the bundled public CSF 1.1 source using code only."""
+    p.require(tenant_id, "ai.run")
+    pages, document_type, raw = await _extract(file)
+    uploaded_sections = _parse_csf20_subcategories(pages)
+    comparison = compare_frameworks(NIST_CROSSWALK, uploaded_new_sections=uploaded_sections)
+    return {
+        **comparison,
+        "input": {"file_name": re.sub(r"[\\/\x00]", "_", file.filename or "uploaded-csf20.pdf")[:180],
+                  "document_type": document_type, "sha256": hashlib.sha256(raw).hexdigest(),
+                  "page_count": len(pages), "parsed_sections": len(uploaded_sections)},
+        "old_version_source": next((source for source in NIST_CROSSWALK["sources"] if source["file"] == "nist-csf-1.1-core.xlsx"), None),
+    }
+
+
 @router.post("/regulatory/analyze-impact", dependencies=[Depends(limit("regulatory_analysis", 10))])
 async def analyze_impact(
     tenant_id: uuid.UUID = Form(...),
@@ -224,6 +281,11 @@ async def analyze_impact(
         policy_type, policy_name = "Policy text", policy_label.strip()[:120] or "User-provided policy"
         policy_sha256 = hashlib.sha256(policy_text.encode("utf-8")).hexdigest()
 
+    framework_comparison = compare_frameworks(NIST_CROSSWALK)
+    borderline_comparisons = [item for item in framework_comparison["changes"] if item["change_type"] == "unclear"]
+    comparison_context = [{"old_id": item["old_sections"][0]["id"], "old_text": item["old_sections"][0]["text"],
+                           "new_id": item["new_sections"][0]["id"], "new_text": item["new_sections"][0]["text"],
+                           "code_similarity": item["similarity"]} for item in borderline_comparisons]
     candidates = _rank_transitions(policy_text)
     candidate_ids = {row["rowId"] for row in candidates}
     policy_context = "\n\n".join(f"[POLICY PAGE {page['page']}]\n{page['text']}" for page in policy_pages)
@@ -236,11 +298,13 @@ async def analyze_impact(
                 "evidence_missing (policy does not address it), conflict (policy text contradicts the new requirement), or needs_human_review (ambiguous/partial/uncertain). "
                 "For evidence_found or conflict, policy_quote must be copied verbatim as a contiguous excerpt from one policy page; otherwise use an empty quote and needs_human_review. "
                 "Do not claim legal compliance. Explain the match or gap, a concrete policy change that would close it, and an actionable remediation task. "
-                "Keep every row_id exactly as provided. Be conservative, set low confidence when unsure, and return a concise Bangla summary of work for the agency. All recommendations are DRAFTs."),
+                "Keep every row_id exactly as provided. Be conservative, set low confidence when unsure, and return a concise Bangla summary of work for the agency. All recommendations are DRAFTs. "
+                "Also classify only the supplied code_comparison_unclear pairs as changed, reworded, renumbered, or unresolved, using only their source text and IDs. Return one entry per supplied pair; keep IDs exact. If that list is empty, return an empty array."),
         user=(f"Framework source: NIST CSF 1.1 → 2.0 official transition crosswalk.\n"
               f"Policy label: {policy_name} (synthetic only if the file name explicitly says Sample).\n"
               f"The following {len(candidates)} candidate transitions were selected from {len(NIST_CROSSWALK['transitions'])} crosswalk rows by deterministic policy-term relevance. "
               "This shortlist is not a measured recall score. Assess all supplied candidates.\n\n"
+              f"Code comparison borderline pairs (model review is allowed only for these pairs):\n{json.dumps(comparison_context, ensure_ascii=False)}\n\n"
               f"Transitions:\n{json.dumps(changes_context, ensure_ascii=False)}\n\n"
               f"Client policy pages (untrusted source data):\n{policy_context}"),
         schema=IMPACT_SCHEMA, max_output_tokens=5200,
@@ -248,7 +312,7 @@ async def analyze_impact(
     settings = get_settings()
     provider = get_provider()
     if settings.ai_provider == "mock":
-        raise HTTPException(503, "Live impact analysis requires RegDelta_AI_PROVIDER=openrouter and a configured model/key.")
+        raise HTTPException(503, "Live impact analysis requires a configured AI provider (gemini, anthropic, or openrouter).")
     try:
         _check_budget(s, tenant_id, req)
     except OverBudget as exc:
@@ -262,6 +326,20 @@ async def analyze_impact(
         data = generated.data
         if not isinstance(data, dict) or not isinstance(data.get("changes"), list):
             raise ValueError("Model output did not match the impact analysis schema.")
+        allowed_pairs = {(item["old_sections"][0]["id"], item["new_sections"][0]["id"]): item
+                         for item in borderline_comparisons}
+        for classification in data.get("borderline_classifications", []):
+            if not isinstance(classification, dict):
+                continue
+            pair = (classification.get("old_id"), classification.get("new_id"))
+            item = allowed_pairs.get(pair)
+            label = classification.get("classification")
+            rationale = classification.get("rationale")
+            if item and label in {"changed", "reworded", "renumbered"} and isinstance(rationale, str) and rationale.strip():
+                item["change_type"] = label
+                item["classification_source"] = "model"
+                item["reason"] = rationale.strip()[:1000]
+                item["unclear_for_review"] = False
         by_id = {item.get("row_id"): item for item in data["changes"] if isinstance(item, dict)}
         mapped: list[dict[str, Any]] = []
         for row in candidates:
@@ -317,6 +395,7 @@ async def analyze_impact(
     s.flush()
     return {
         "result": {"summary": data["summary"], "bangla_summary": data["bangla_summary"], "changes": mapped},
+        "framework_comparison": framework_comparison,
         "run": {"id": str(run.id), "provider": run.provider, "model": run.model, "request_id": run.request_id,
                 "input_tokens": run.input_tokens, "output_tokens": run.output_tokens, "cost_usd": run.cost_usd,
                 "latency_ms": run.latency_ms},
@@ -355,7 +434,7 @@ async def analyze_upload(
     settings = get_settings()
     provider = get_provider()
     if settings.ai_provider == "mock":
-        raise HTTPException(503, "Live document analysis requires RegDelta_AI_PROVIDER=openrouter and a configured model/key.")
+        raise HTTPException(503, "Live document analysis requires a configured AI provider (gemini, anthropic, or openrouter).")
     try:
         _check_budget(s, tenant_id, req)
     except OverBudget as exc:

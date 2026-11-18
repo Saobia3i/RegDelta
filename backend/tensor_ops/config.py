@@ -5,6 +5,15 @@ import os
 import json
 from dataclasses import dataclass, field
 from functools import lru_cache
+from pathlib import Path
+
+_dotenv = Path(__file__).resolve().parents[2] / ".env"
+if _dotenv.exists():
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(_dotenv, override=True)
+    except ImportError:
+        pass
 
 
 class ConfigError(RuntimeError):
@@ -63,13 +72,14 @@ class Settings:
     extract_memory_mb: int = 512
 
     # AI
-    ai_provider: str = "mock"  # mock | anthropic | openrouter
+    ai_provider: str = "mock"  # mock | anthropic | openrouter | gemini
     anthropic_api_key: str | None = None
     openrouter_api_key: str | None = None
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openrouter_referer: str | None = None
     openrouter_app_title: str = "RegDelta"
-    ai_model: str = "claude-sonnet-5-5"
+    gemini_api_key: str | None = None
+    ai_model: str = "gemini-3.1-flash-lite"
     ai_timeout_s: int = 120
     ai_max_output_tokens: int = 4000
     ai_job_budget_usd: float = 0.50
@@ -97,8 +107,8 @@ class Settings:
         return self.env in ("local", "test")
 
     def validate(self) -> None:
-        if self.ai_provider not in ("mock", "anthropic", "openrouter"):
-            raise ConfigError("RegDelta_AI_PROVIDER must be mock, anthropic, or openrouter")
+        if self.ai_provider not in ("mock", "anthropic", "openrouter", "gemini"):
+            raise ConfigError("RegDelta_AI_PROVIDER must be mock, anthropic, openrouter, or gemini")
         if self.ai_provider == "anthropic" and not self.anthropic_api_key:
             raise ConfigError("RegDelta_ANTHROPIC_API_KEY is required for the anthropic provider")
         if self.ai_provider == "openrouter":
@@ -106,6 +116,8 @@ class Settings:
                 raise ConfigError("RegDelta_OPENROUTER_API_KEY is required for the openrouter provider")
             if not self.ai_model:
                 raise ConfigError("RegDelta_AI_MODEL must be set to an OpenRouter model ID")
+        if self.ai_provider == "gemini" and not self.gemini_api_key:
+            raise ConfigError("RegDelta_GEMINI_API_KEY is required for the gemini provider")
         if self.is_local:
             return
         missing = [n for n, v in {
@@ -130,8 +142,13 @@ class Settings:
             raise ConfigError("The dev malware scanner is not allowed outside local; set RegDelta_SCANNER=clamav")
 
 
-@lru_cache
 def get_settings() -> Settings:
+    if _dotenv.exists():
+        try:
+            from dotenv import load_dotenv
+            load_dotenv(_dotenv, override=True)
+        except ImportError:
+            pass
     env = _env("RegDelta_ENV", "local") or "local"
     s = Settings(
         env=env,
@@ -159,8 +176,8 @@ def get_settings() -> Settings:
         openrouter_base_url=_env("RegDelta_OPENROUTER_BASE_URL", Settings.openrouter_base_url),  # type: ignore[arg-type]
         openrouter_referer=_env("RegDelta_OPENROUTER_REFERER"),
         openrouter_app_title=_env("RegDelta_OPENROUTER_APP_TITLE", "RegDelta"),  # type: ignore[arg-type]
-        ai_model=_env_first("RegDelta_AI_MODEL", "TENSOR_AI_MODEL",
-                            default="" if _env_first("RegDelta_AI_PROVIDER", "TENSOR_AI_PROVIDER", default="mock") == "openrouter" else Settings.ai_model),  # type: ignore[arg-type]
+        gemini_api_key=_env("RegDelta_GEMINI_API_KEY") or _env("GEMINI_API_KEY"),
+        ai_model=_env_first("RegDelta_AI_MODEL", "TENSOR_AI_MODEL", default=Settings.ai_model),  # type: ignore[arg-type]
         ai_job_budget_usd=_float("RegDelta_AI_JOB_BUDGET_USD", 0.50),
         ai_tenant_daily_budget_usd=_float("RegDelta_AI_TENANT_DAILY_BUDGET_USD", 20.0),
         ai_price_in_per_mtok=_float("RegDelta_AI_PRICE_IN_PER_MTOK", 3.0),

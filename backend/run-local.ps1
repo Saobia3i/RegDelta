@@ -1,7 +1,7 @@
-param(
+﻿param(
   [switch]$Migrate,
   [switch]$SeedDemo,
-  [int]$ApiPort = 8001
+  [int]$ApiPort = 8004
 )
 
 $ErrorActionPreference = 'Stop'
@@ -13,7 +13,9 @@ if (-not (Test-Path -LiteralPath $pythonExe)) {
   throw 'Backend virtual environment is missing. Create it with: python -m venv backend/.venv; backend/.venv/Scripts/python -m pip install -r backend/requirements.lock'
 }
 
-# Load local dotenv values for this process only. Do not print them; the file may contain API keys.
+# The project-root .env is authoritative for local runs and overrides inherited
+# shell values that may point at an unrelated/local database. Values stay in
+# this process only and are never printed.
 if (Test-Path -LiteralPath $dotenvPath) {
   foreach ($line in [System.IO.File]::ReadLines($dotenvPath)) {
     if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$') {
@@ -22,7 +24,7 @@ if (Test-Path -LiteralPath $dotenvPath) {
       if ($value.Length -ge 2 -and (($value.StartsWith('"') -and $value.EndsWith('"')) -or ($value.StartsWith("'") -and $value.EndsWith("'")))) {
         $value = $value.Substring(1, $value.Length - 2)
       }
-      if (-not (Test-Path "Env:$name")) { [Environment]::SetEnvironmentVariable($name, $value, 'Process') }
+      [Environment]::SetEnvironmentVariable($name, $value, 'Process')
     }
   }
 }
@@ -43,3 +45,6 @@ try {
 finally {
   Pop-Location
 }
+
+
+

@@ -89,7 +89,7 @@ export default function RegulatoryAnalyticsCharts({ citations, actions, inputTok
     <div className="rd-chart-grid">
       <article className="rd-chart-card"><div><b>Citations by PDF page</b><small>Verified quotations returned by Gemini</small></div><Chart option={citationOption} label="Verified source citations grouped by PDF page" /></article>
       <article className="rd-chart-card"><div><b>Draft actions by suggested owner</b><small>Owner suggestions generated for this run</small></div><Chart option={ownerOption} label="AI draft actions grouped by suggested owner" /></article>
-      <article className="rd-chart-card"><div><b>Model usage</b><small>Token counts reported by OpenRouter</small></div><Chart option={tokenOption} label="OpenRouter input and output token counts" /></article>
+      <article className="rd-chart-card"><div><b>Model usage</b><small>Token counts reported for this run</small></div><Chart option={tokenOption} label="Model input and output token counts" /></article>
     </div>
     <p className="rd-chart-note">These charts describe this single document run. They are not quality scores, compliance ratings, or measured system-wide performance.</p>
   </section>;
