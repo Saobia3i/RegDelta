@@ -1,107 +1,68 @@
-import { lazy, Suspense, useState, type ChangeEvent } from "react";
+import { lazy, Suspense, useEffect, useState, type ChangeEvent } from "react";
 import { api, hasToken } from "../api";
+import dataset from "../data/nistRegulatoryData.json";
 import { go, useMe } from "../ui";
 import "./regulatory-changes.css";
 
-const RegulatoryAnalyticsCharts = lazy(() => import("./RegulatoryAnalyticsCharts"));
+const RegulatoryImpactCharts = lazy(() => import("./RegulatoryImpactCharts"));
+type Status = "evidence_found" | "evidence_missing" | "conflict" | "needs_human_review";
+type Change = { row_id:string; old_id:string|null; old_text:string; new_id:string; new_text:string; change_type:string; impact_status:Status; rationale:string; confidence:number; policy_quote:string; policy_quote_page:number|null; verification_note:string; recommended_policy_change:string; remediation_task:string; relevance_score:number; regulation_source:string };
+type Result = { result:{summary:string;bangla_summary:string;changes:Change[]}; run:{provider:string;model:string;request_id:string|null;input_tokens:number;output_tokens:number;cost_usd:number|null;latency_ms:number}; source:{framework:string;from_version:string;to_version:string;crosswalk_total:number;analysed_candidates:number;candidate_selection:string;policy_file:string;policy_type:string;policy_sha256:string} };
 
-type Citation = { page: number; quote: string; supports: string };
-type Action = { action: string; owner_suggestion: string };
-type Summary = { summary: string; bangla_summary: string; key_actions: Action[]; citations: Citation[]; needs_human_review: boolean };
-type ModelRun = { provider: string; model: string; request_id: string | null; input_tokens: number; output_tokens: number; cost_usd: number | null; latency_ms: number };
-type AnalyzeResponse = { result: Summary; run: ModelRun; source: { file_name: string; source_label: string; document_type: string; page_count: number; extracted_characters: number; sha256: string } };
+const labels:Record<Status,string>={evidence_found:"Evidence found",evidence_missing:"Evidence missing",conflict:"Potential conflict",needs_human_review:"Needs human review"};
+const samplePath="/recording-input/Sample-Client-Access-Policy.md";
 
-export default function RegulatoryChanges() {
-  const me = useMe();
-  const tenants = me.memberships.filter((membership) => membership.permissions.includes("ai.run"));
-  const needsLogin = !hasToken();
-  const [tenantId, setTenantId] = useState(tenants[0]?.tenant_id || "");
-  const [file, setFile] = useState<File | null>(null);
-  const [sourceLabel, setSourceLabel] = useState<"Sample Public Data" | "User original file">("Sample Public Data");
-  const [result, setResult] = useState<AnalyzeResponse | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  function chooseFile(event: ChangeEvent<HTMLInputElement>) {
-    const next = event.currentTarget.files?.[0] ?? null;
-    setFile(next); setResult(null); setError(null);
-  }
-
-  async function analyze() {
-    if (!file) return;
-    setBusy(true); setError(null); setResult(null);
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("tenant_id", tenantId);
-      form.append("source_label", sourceLabel === "Sample Public Data" ? "sample_public_data" : "user_original");
-      setResult(await api.form<AnalyzeResponse>("/v1/regulatory/analyze-upload", form));
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Document analysis failed. No result was generated.");
-    } finally { setBusy(false); }
-  }
-
+export default function RegulatoryChanges(){
+  const me=useMe(); const tenants=me.memberships.filter(m=>m.permissions.includes("ai.run")); const needsLogin=!hasToken();
+  const [tenantId,setTenantId]=useState(tenants[0]?.tenant_id||""); const [policyText,setPolicyText]=useState(""); const [policyFile,setPolicyFile]=useState<File|null>(null);
+  const [policyLabel,setPolicyLabel]=useState("User-provided policy"); const [pasteOpen,setPasteOpen]=useState(false); const [result,setResult]=useState<Result|null>(null); const [busy,setBusy]=useState(false); const [error,setError]=useState<string|null>(null);
+  useEffect(()=>{if(tenants.length&&!tenantId)setTenantId(tenants[0].tenant_id)},[tenants,tenantId]);
+  function choosePolicy(e:ChangeEvent<HTMLInputElement>){const f=e.currentTarget.files?.[0]||null;setPolicyFile(f);setPasteOpen(false);setPolicyLabel(f?"User original policy":"User-provided policy");setResult(null);setError(null)}
+  async function loadSample(){setBusy(true);setError(null);try{const r=await fetch(samplePath);if(!r.ok)throw new Error("Could not load the synthetic sample policy.");setPolicyText(await r.text());setPolicyFile(null);setPasteOpen(true);setPolicyLabel("SYNTHETIC SAMPLE · NOT REAL CLIENT DATA");setResult(null)}catch(e){setError(e instanceof Error?e.message:"Could not load sample policy.")}finally{setBusy(false)}}
+  async function analyze(){setBusy(true);setError(null);setResult(null);try{const form=new FormData();form.append("tenant_id",tenantId);form.append("policy_label",policyLabel);if(policyFile)form.append("policy_file",policyFile);else form.append("policy_text",policyText);setResult(await api.form<Result>("/v1/regulatory/analyze-impact",form))}catch(e){setError(e instanceof Error?e.message:"Impact analysis failed. No draft was created.")}finally{setBusy(false)}}
+  const counts=(result?.result.changes||[]).reduce((a,c)=>(a[c.impact_status]++,a),{evidence_found:0,evidence_missing:0,conflict:0,needs_human_review:0});
+  const verifiedPolicyQuotes=result?.result.changes.filter(c=>!!c.policy_quote).length||0;
+  const unverifiedFindings=result?.result.changes.filter(c=>c.verification_note&&!c.policy_quote).length||0;
+  const pipeline=[
+    {n:"01",title:"Detect & ingest",state:result?"done":"ready",badge:result?"Complete":"Source pack ready",body:result?"NIST source pack loaded; policy parsed for this run.":"NIST CSF 1.1 → 2.0 source pack is ready; add a client policy."},
+    {n:"02",title:"Compare changes",state:result?"partial":"pending",badge:result?`${result.source.analysed_candidates}/${result.source.crosswalk_total} candidates`:"After input",body:result?"Policy-relevant shortlist only; this is not full crosswalk recall.":"Rank relevant transitions from the official NIST crosswalk."},
+    {n:"03",title:"Map policy impact",state:result?"done":"pending",badge:result?"AI assessed":"After compare",body:result?"Classifies evidence found, missing, conflict, or human review.":"Gemini assesses each shortlisted change against policy text."},
+    {n:"04",title:"Draft fixes",state:result?"done":"pending",badge:result?"Drafted":"After mapping",body:result?"Policy change, remediation task, and Bangla summary are drafts.":"Prepare proposed policy edits and agency remediation tasks."},
+    {n:"05",title:"Verify quotes",state:result?(unverifiedFindings?"partial":"done"):"pending",badge:result?`${verifiedPolicyQuotes} policy quotes verified`:"After draft",body:result?(unverifiedFindings?`${unverifiedFindings} finding(s) need manual evidence review.`:"Policy evidence quotes checked against supplied source text."):"Unverified quotes will be omitted and sent for human review."},
+    {n:"06",title:"Human approval",state:"gate",badge:"Consultant required",body:"Approve/edit/reject is not connected to these findings yet; all output stays DRAFT."},
+    {n:"07",title:"Act after approval",state:"gate",badge:"Not triggered",body:"GitHub issue creation is not connected to this flow; no external action is taken."},
+  ];
+  const canAnalyze=!!tenantId&&(!!policyFile||policyText.trim().length>=30);
   return <div className="regdelta-workbench">
-    <header className="rd-hero-header">
-      <div><div className="rd-eyebrow">REGDELTA · DOCUMENT REVIEW</div><h1>Upload a source document</h1>
-        <p>Gemini extracts and summarizes the uploaded document, drafts action items in Bangla, and cites exact page text.</p></div>
-      <div className="rd-hero-badges"><span className="rd-chip"><i className="rd-dot green" />{sourceLabel.toUpperCase()}</span><span className="rd-chip"><i className="rd-dot amber" />LIVE GEMINI REQUEST</span></div>
-    </header>
-
-    <section className="rd-hero-input card">
-      <div className="rd-hero-input-head"><div><span className="rd-kicker">INPUT · SELECT YOUR REAL FILE</span><h2>Source document</h2></div><span className="rd-sample-label">NO SAMPLE ANSWER</span></div>
-      <label className="rd-upload-drop">
-        <input type="file" accept=".pdf,application/pdf,.txt,.md,text/plain,text/markdown" onChange={chooseFile} disabled={busy} />
-        <span className="rd-upload-icon">↑</span><b>{file ? file.name : "Choose a PDF, TXT, or Markdown file"}</b>
-        <small>{file ? `${(file.size / 1024).toFixed(1)} KB · ${file.type || "file"}` : "Text-based PDF supported · maximum 12 MB · scanned-image OCR is not included"}</small>
-      </label>
-      <fieldset className="rd-source-kind"><legend>Source label for the recording</legend>
-        <label><input type="radio" name="source-label" checked={sourceLabel === "Sample Public Data"} onChange={() => setSourceLabel("Sample Public Data")} /> Sample Public Data</label>
-        <label><input type="radio" name="source-label" checked={sourceLabel === "User original file"} onChange={() => setSourceLabel("User original file")} /> My original file</label>
-      </fieldset>
-      <label className="rd-tenant-select">Client workspace
-        <select value={tenantId} onChange={(event) => setTenantId(event.target.value)} disabled={busy || tenants.length === 0}>
-          {tenants.length === 0 && <option value="">{needsLogin ? "Sign in to load your workspaces" : "No workspace with AI run permission"}</option>}
-          {tenants.map((tenant) => <option key={tenant.tenant_id} value={tenant.tenant_id}>{tenant.tenant_name}</option>)}
-        </select>
-      </label>
-      {needsLogin && <div className="rd-auth-required" role="status"><span>Local reviewer mode is for navigation only. Sign in to use the FastAPI upload and AI flow.</span><button className="btn sm" onClick={() => go("/login")}>Sign in</button></div>}
-      {!needsLogin && tenants.length === 0 && <div className="rd-auth-required" role="status">Your account has no workspace with AI run permission. Ask a workspace administrator to grant access.</div>}
-      <div className="rd-upload-privacy">The FastAPI backend parses the selected file in memory and sends extracted text to the configured AI provider. The source file is not saved; the backend records a tenant-scoped run with SHA-256 and usage metadata. Use only documents approved for this model.</div>
-      <div className="rd-submit-row"><span>Output is generated only after the model call; failed calls show no draft.</span>
-        <button className="btn primary" disabled={busy || !file || !tenantId} onClick={analyze}>{busy ? "Uploading and analyzing…" : "Analyze original document"}</button></div>
-      {error && <div className="rd-ai-error" role="alert"><b>No AI result generated.</b> {error}</div>}
+    <header className="rd-hero-header"><div><div className="rd-eyebrow">REGDELTA · REGULATORY CHANGE REVIEW</div><h1>Map framework changes to policy</h1><p>Compare the NIST CSF 1.1 → 2.0 transition crosswalk with a client policy, then draft what the agency should change.</p></div>
+      <div className="rd-hero-badges"><span className="rd-chip"><i className="rd-dot green"/>NIST PUBLIC CROSSWALK</span><span className="rd-chip"><i className="rd-dot amber"/>LIVE GEMINI ANALYSIS</span></div></header>
+    <section className="rd-hero-input card"><div className="rd-hero-input-head"><div><span className="rd-kicker">INPUT · NIST CSF 1.1 → CSF 2.0 + CLIENT POLICY</span><h2>Choose a policy to assess</h2></div></div>
+      <div className="rd-framework-source"><b>NIST CSF 1.1 → 2.0</b><span>{dataset.transitions.length} public crosswalk rows · source references and text are included in this build</span><a href={dataset.sources[0].url} target="_blank" rel="noreferrer">View NIST transition source ↗</a></div>
+      <label className="rd-upload-drop"><input type="file" accept=".pdf,application/pdf,.txt,.md,text/plain,text/markdown" onChange={choosePolicy} disabled={busy}/><span className="rd-upload-icon">↑</span><b>{policyFile?policyFile.name:"Upload the client policy (PDF, TXT, or Markdown)"}</b><small>{policyFile?`${(policyFile.size/1024).toFixed(1)} KB · ${policyLabel}`:"The regulatory framework and crosswalk are already selected above."}</small></label>
+      <div className="rd-sample-action"><button className="btn sm" type="button" onClick={loadSample} disabled={busy}>Load synthetic sample policy</button><span>Clearly labeled SAMPLE data; safe for a recorded walkthrough.</span></div>
+      {!policyFile&&<div className="rd-paste-control"><button className="btn sm" type="button" aria-expanded={pasteOpen} onClick={()=>setPasteOpen(x=>!x)} disabled={busy}>{pasteOpen?"Hide policy text":"Or paste policy text instead"}</button>{policyText&&!pasteOpen&&<span>{policyLabel.includes("SAMPLE")?"Synthetic sample policy loaded":"Pasted policy text ready"} · {policyText.length.toLocaleString()} characters</span>}</div>}
+      {pasteOpen&&!policyFile&&<label className="rd-field rd-policy-input"><span>Paste client policy text {policyLabel.includes("SAMPLE")&&<b className="rd-sample-label">SYNTHETIC SAMPLE · NOT REAL CLIENT DATA</b>}</span><textarea className="rd-policy-textarea" value={policyText} onChange={e=>{setPolicyText(e.target.value);setResult(null);setPolicyLabel(policyLabel.includes("SAMPLE")?"SYNTHETIC SAMPLE · NOT REAL CLIENT DATA":"User-provided policy")}} maxLength={100000} rows={7} placeholder="Paste the client policy text you want to assess. Or upload a PDF, TXT, or Markdown policy above." disabled={busy}/></label>}
+      {tenants.length===1&&<div className="rd-workspace-scope"><small>WORKSPACE FOR THIS RUN · ACCESS SCOPED</small><b>{tenants[0].tenant_name||"Client workspace"}</b></div>}
+      {tenants.length>1&&<label className="rd-tenant-select">Choose workspace for this analysis<select value={tenantId} onChange={e=>setTenantId(e.target.value)} disabled={busy}><option value="">Select a workspace</option>{tenants.map(t=><option key={t.tenant_id} value={t.tenant_id}>{t.tenant_name}</option>)}</select></label>}
+      {needsLogin&&<div className="rd-auth-required" role="status"><span>Sign in to run the real FastAPI and Gemini analysis.</span><button className="btn sm" onClick={()=>go("/login")}>Sign in</button></div>}
+      {!needsLogin&&tenants.length===0&&<div className="rd-auth-required" role="status">This account has no workspace permission to run AI analysis.</div>}
+      <section className="rd-pipeline" aria-label="RegDelta seven-step workflow"><div className="rd-pipeline-head"><div><span className="rd-kicker">REGDELTA · 7-STEP WORKFLOW</span><h3>From regulatory change to agency action</h3></div><span>Live status · this run</span></div><ol className="rd-pipeline-grid">{pipeline.map(step=><li className="rd-pipeline-step" data-state={step.state} key={step.n}><span className="rd-pipeline-number">{step.n}</span><div><b>{step.title}</b><small>{step.body}</small></div><em>{step.badge}</em></li>)}</ol><p className="rd-pipeline-note">Steps 6–7 remain gated for human control. The current prototype does not claim that approval or GitHub actions have been completed.</p></section>
+      <div className="rd-submit-row"><span>Upload files are parsed in memory. Model findings and proposed fixes remain drafts for consultant review.</span><button className="btn primary" disabled={busy||!canAnalyze} onClick={analyze}>{busy?"Comparing policy and changes…":"Analyze policy impact"}</button></div>
+      {error&&<div className="rd-ai-error" role="alert"><b>Impact analysis did not complete.</b> {error}</div>}
     </section>
-
-    {result && <section className="rd-ai-result" aria-live="polite">
-      <div className="rd-ai-result-head"><div><span className="rd-kicker">OUTPUT · REAL MODEL RESPONSE</span><h2>Document summary <span className="rd-draft-pill">DRAFT · HUMAN REVIEW REQUIRED</span></h2></div>
-        <span className={`rd-impact-status ${result.result.needs_human_review ? "needs_human_review" : "evidence_found"}`}>{result.result.needs_human_review ? "Needs human review" : "Review before use"}</span></div>
-      <div className="rd-doc-source"><b>{result.source.file_name} · {result.source.source_label}</b><span>{result.source.document_type} · {result.source.page_count} page(s) · {result.source.extracted_characters.toLocaleString()} extracted characters</span><code>SHA-256 {result.source.sha256}</code></div>
-      <div className="rd-run-kpis" aria-label="This run metrics">
-        <article><small>PAGES EXTRACTED</small><b>{result.source.page_count}</b></article>
-        <article><small>ACTIONS DRAFTED</small><b>{result.result.key_actions.length}</b></article>
-        <article><small>PAGE CITATIONS VERIFIED</small><b>{result.result.citations.length}/{result.result.citations.length} · 100%</b></article>
-        <article><small>MODEL LATENCY</small><b>{(result.run.latency_ms / 1000).toFixed(2)} s</b></article>
-        <article><small>REPORTED MODEL COST</small><b>{result.run.cost_usd == null ? "Not reported" : `$${result.run.cost_usd.toFixed(4)}`}</b></article>
-      </div>
-      <Suspense fallback={<div className="rd-chart-loading">Loading run analytics…</div>}>
-        <RegulatoryAnalyticsCharts citations={result.result.citations} actions={result.result.key_actions}
-          inputTokens={result.run.input_tokens} outputTokens={result.run.output_tokens} />
-      </Suspense>
-      <div className="rd-result-grid">
-        <article className="rd-result-card"><span className="rd-kicker">ENGLISH SUMMARY · DRAFT</span><p>{result.result.summary}</p></article>
-        <article className="rd-result-card rd-bangla-card"><span className="rd-kicker">বাংলা সারাংশ · DRAFT</span><p lang="bn">{result.result.bangla_summary}</p><small>Bangla teammate review required before use.</small></article>
-        <article className="rd-result-card rd-actions-card"><span className="rd-kicker">ACTION PLAN · DRAFT</span><ol>{result.result.key_actions.map((item, index) => <li key={index}><b>{item.action}</b><small>Suggested owner: {item.owner_suggestion || "Human assignment required"}</small></li>)}</ol></article>
-      </div>
-      <article className="rd-citations-card"><div className="rd-citation-title"><span className="rd-kicker">CODE-VERIFIED SOURCE CITATIONS</span><b>Quotes are checked against the cited page with PDF line wraps, whitespace, and Unicode typography normalized. Near-verbatim quotes are replaced with an exact extracted source excerpt.</b></div>
-        {result.result.citations.map((citation, index) => <div className="rd-citation" key={`${citation.page}-${index}`}>
-          <span className="rd-verified-badge">PAGE {citation.page} · VERIFIED</span><div><b>{citation.supports}</b><blockquote>{citation.quote}</blockquote></div>
-        </div>)}
-      </article>
-      <div className="rd-model-run"><span>Live run · {result.run.provider} / {result.run.model}</span><span>{result.run.input_tokens} input · {result.run.output_tokens} output tokens</span>
-        <span>{result.run.latency_ms.toLocaleString()} ms</span><span>{result.run.cost_usd == null ? "Provider cost not reported" : `$${result.run.cost_usd.toFixed(6)}`}</span>
-        {result.run.request_id && <code>{result.run.request_id}</code>}</div>
+    {result&&<section className="rd-ai-result" aria-live="polite"><div className="rd-ai-result-head"><div><span className="rd-kicker">OUTPUT · REAL MODEL RESPONSE</span><h2>Change impact and agency action <span className="rd-draft-pill">DRAFT · HUMAN REVIEW REQUIRED</span></h2></div><span className="rd-impact-status needs_human_review">Consultant review before action</span></div>
+      <div className="rd-doc-source"><b>{result.source.framework} · {result.source.from_version} → {result.source.to_version}</b><span>{result.source.policy_file} · {result.source.policy_type}</span><code>Policy SHA-256 {result.source.policy_sha256}</code></div>
+      <div className="rd-run-kpis"><article><small>CHANGES ASSESSED</small><b>{result.source.analysed_candidates}/{result.source.crosswalk_total}</b></article><article><small>EVIDENCE FOUND</small><b>{counts.evidence_found}</b></article><article><small>EVIDENCE MISSING</small><b>{counts.evidence_missing}</b></article><article><small>POTENTIAL CONFLICTS</small><b>{counts.conflict}</b></article><article><small>HUMAN REVIEW</small><b>{counts.needs_human_review}</b></article><article><small>MODEL LATENCY</small><b>{(result.run.latency_ms/1000).toFixed(2)} s</b></article></div>
+      <Suspense fallback={<div className="rd-chart-loading">Loading impact dashboard…</div>}><RegulatoryImpactCharts changes={result.result.changes}/></Suspense>
+      <div className="rd-result-grid"><article className="rd-result-card"><span className="rd-kicker">AGENCY SUMMARY · DRAFT</span><p>{result.result.summary}</p></article><article className="rd-result-card rd-bangla-card"><span className="rd-kicker">বাংলা কর্মপরিকল্পনা · DRAFT</span><p lang="bn">{result.result.bangla_summary}</p><small>Bangla teammate review required before client use.</small></article></div>
+      <div className="rd-change-list">{result.result.changes.map((c,i)=><article className="rd-change-card" key={c.row_id}><header><div><span className="rd-kicker">CHANGE {i+1} · {c.change_type}</span><h3>{c.old_id||"New"} → {c.new_id}</h3></div><span className={`rd-impact-status ${c.impact_status}`}>{labels[c.impact_status]}</span></header>
+        <div className="rd-change-columns"><section><span className="rd-kicker">CSF 1.1 · BEFORE</span><p>{c.old_text||"No prior requirement in this crosswalk row."}</p></section><section><span className="rd-kicker">CSF 2.0 · NEW REQUIREMENT</span><p>{c.new_text}</p><small>Source: {c.regulation_source}</small></section></div>
+        <div className="rd-change-rationale"><b>Why this status · {Math.round(c.confidence*100)}% model confidence</b><p>{c.rationale}</p>{c.policy_quote?<blockquote>Policy evidence · page {c.policy_quote_page} · verified against the uploaded text<br/>“{c.policy_quote}”</blockquote>:<small>{c.verification_note||"No matching policy quote was verified; consultant review is required."}</small>}</div>
+        <div className="rd-fix-grid"><section><span className="rd-kicker">PROPOSED POLICY CHANGE · DRAFT</span><p>{c.recommended_policy_change}</p></section><section><span className="rd-kicker">AGENCY REMEDIATION TASK · DRAFT</span><p>{c.remediation_task}</p></section></div>
+      </article>)}</div>
+      <p className="rd-chart-note">NIST requirement wording comes from the public transition crosswalk. Policy quotes are returned only when verified against the uploaded policy; quote verification does not prove legal sufficiency. No finding makes a compliance claim.</p>
+      <div className="rd-model-run"><span>Live run · {result.run.provider} / {result.run.model}</span><span>{result.run.input_tokens} input · {result.run.output_tokens} output tokens</span><span>{result.run.latency_ms.toLocaleString()} ms</span><span>{result.run.cost_usd==null?"Cost not reported":`$${result.run.cost_usd.toFixed(6)}`}</span>{result.run.request_id&&<code>{result.run.request_id}</code>}</div>
     </section>}
-    {!result && !error && <div className="rd-empty-result"><b>Upload your original document to begin.</b><span>No prewritten summary, placeholder citation, or sample output is loaded.</span></div>}
-  </div>;
+    {!result&&!error&&<div className="rd-empty-result"><b>Load the synthetic sample policy or upload an authorized client policy to start.</b><span>No prewritten AI findings are loaded. Each status and remediation draft comes from a real model request.</span></div>}
+  </div>
 }

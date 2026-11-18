@@ -119,6 +119,12 @@ class OpenRouterProvider:
             raise ProviderError("OpenRouter request timed out") from e
         except self._httpx.HTTPStatusError as e:
             code = e.response.status_code
+            if code == 402:
+                raise ProviderError("OpenRouter rejected this run with HTTP 402 (billing or credit limit). Add credits/check the account billing; no analysis result was created.") from e
+            if code == 429:
+                raise ProviderError("OpenRouter rate limit reached. Wait briefly and retry; no analysis result was created.") from e
+            if code in (401, 403):
+                raise ProviderError(f"OpenRouter rejected the API credential or model access (HTTP {code}); check provider settings.") from e
             raise ProviderError(f"OpenRouter request failed (HTTP {code}); check key, model, and structured-output support") from e
         except (self._httpx.HTTPError, ValueError) as e:
             raise ProviderError("OpenRouter returned an invalid response") from e

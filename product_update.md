@@ -202,3 +202,28 @@ This work began after the user asked to run the project and demonstrate the vide
 - **Verifier checks:** reproduced a wrapped-word PDF source (`high-` + newline + `level`), confirmed a one-token quote typo is corrected to an exact extracted substring, and confirmed a fabricated citation is rejected.
 - **Build:** Python compile passed; frontend production build passed (632 modules, exit 0).
 - **Limitation:** citation text verification proves the quote appears in the cited page; it does not independently prove that the model's `supports` explanation is semantically correct. Human review remains required.
+
+### 2026-11-18 — Restore the RegDelta change-to-policy impact workflow
+
+- **Product correction:** the single-document summarizer did not implement the product plan's main problem/solution. The target is to compare the NIST CSF 1.1→2.0 change crosswalk with a client policy and show what is covered, missing, potentially conflicting, and what an agency can fix. The regulatory page now follows this flow.
+- **Implemented:** the backend loads the bundled public NIST transition crosswalk (211 rows), deterministically ranks up to 12 policy-relevant candidates, and sends those real before/after requirements plus uploaded/pasted policy text to the configured live model. Model results include `Evidence found`, `Evidence missing`, `Potential conflict`, or `Needs human review`, a rationale, confidence, draft policy change, remediation task, and Bangla work summary. All are clearly drafts.
+- **Evidence behavior:** NIST old/new requirement text comes from the source crosswalk. Policy quotes are verified against the uploaded/pasted policy; an invalid/missing quote downgrades that finding to Needs human review, while the rest of the analysis remains visible. It no longer fails the entire analysis because one citation is unverifiable. No compliance conclusion is produced.
+- **Input/UI:** added a clearly labeled synthetic access policy at `frontend/public/recording-input/Sample-Client-Access-Policy.md`; the Regulatory changes page can load it or accept an authorized client policy PDF/TXT/Markdown. It shows a per-run ECharts status/change-type dashboard, before/after requirements, evidence, proposed policy updates, and agency tasks. The shortlist count is visible (e.g. 12/211); it is not represented as full recall.
+- **Deployment sources:** copied the crosswalk into `backend/tensor_ops/content/regulatory/nist_csf_11_20_crosswalk.json` so FastAPI does not depend on frontend imports. Source references and hashes remain in the data file.
+- **Verification:** Python compile passed, TypeScript/Vite production build passed (633 modules, exit 0), FastAPI OpenAPI exposes `/v1/regulatory/analyze-impact`, frontend and synthetic-policy URL returned HTTP 200.
+- **Live-model status:** a real attempt with the sample policy was rejected by OpenRouter with HTTP 402 (billing/credit limit). No AI result was fabricated. Provider errors now distinguish HTTP 402 billing/credits from a citation-verification issue. Re-run after the OpenRouter account has available credits to verify the new impact schema end-to-end.
+- **Known scope limit:** this prototype assesses the 12 highest lexical-relevance candidates from 211 crosswalk rows in one call. It does not claim to have mapped all 211 or measured recall. Full pagination/batch review and human approve/edit/reject remain later product phases.
+
+### 2026-11-18 — Show the seven-step workflow in the Regulatory changes page
+
+- **Delivered:** replaced the generic in-memory upload/privacy paragraphs with an always-visible, numbered seven-step workflow panel. The panel updates based on whether an analysis result exists.
+- **Truthful run status:** Detect/ingest displays source/policy readiness; Compare displays the current policy-relevance shortlist (12 of 211) as partial; Map, Draft, and Verify show run outcomes; Human approval is explicitly pending/not connected to these findings; Act is explicitly not triggered because approved GitHub issue creation is not connected.
+- **Trust boundary:** UI explicitly says all output is DRAFT, does not claim all seven steps are implemented, and explains that step 6–7 remain human-controlled gates. This follows `product.md`; it avoids claiming approval or external issue creation that the current workflow has not completed.
+- **Verification:** frontend build passed (633 modules, exit 0); backend compile passed.
+
+### 2026-11-18 — Clarify policy input and workspace selector
+
+- Collapsed the optional paste-policy editor by default; policy-file upload is the primary input. The synthetic sample action opens the editor after loading so the sample text can be inspected/edited. Added explicit “Or paste policy text instead” language.
+- Applied theme tokens to the policy textarea so dark mode no longer renders a bright white field.
+- The prior single-workspace dropdown was not a role selector; it scoped the analysis to one tenant. Replaced it with a read-only workspace scope label when there is exactly one accessible workspace; the selector appears only when the user has multiple workspaces.
+- Frontend production build passed (633 modules, exit 0).
