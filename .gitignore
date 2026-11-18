@@ -4,8 +4,12 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 backend/var/
+backend/.venv/
 backend/evals/results/
 frontend/node_modules/
 frontend/dist/
 .env
+.env-*.tmp
 *.env.local
+.neon
+node_modules/

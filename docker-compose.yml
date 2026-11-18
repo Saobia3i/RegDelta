@@ -16,8 +16,8 @@ services:
     command: sh -c "alembic upgrade head && python -m RegDelta_ops.seed --demo"
     environment: &env
       RegDelta_ENV: local
-      RegDelta_DATABASE_URL: postgresql+psycopg://RegDelta_app:devpass@db/RegDelta
-      RegDelta_ADMIN_DATABASE_URL: postgresql+psycopg://RegDelta_owner:devpass@db/RegDelta
+      RegDelta_DATABASE_URL: ${RegDelta_DATABASE_URL:-${DATABASE_URL:-postgresql+psycopg://RegDelta_app:devpass@db/RegDelta}}
+      RegDelta_ADMIN_DATABASE_URL: ${RegDelta_ADMIN_DATABASE_URL:-${DATABASE_URL_UNPOOLED:-${DATABASE_URL:-${RegDelta_DATABASE_URL:-postgresql+psycopg://RegDelta_owner:devpass@db/RegDelta}}}}
       RegDelta_STORAGE_DIR: /app/var/objects
       RegDelta_SCANNER: clamav
       RegDelta_CLAMD_HOST: clamav

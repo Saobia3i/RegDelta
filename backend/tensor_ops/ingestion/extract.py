@@ -3,10 +3,14 @@ from __future__ import annotations
 
 import json
 import os
-import resource
 import subprocess
 import sys
 from dataclasses import dataclass
+
+try:
+    import resource
+except ImportError:  # Windows; the subprocess timeout remains enforced there.
+    resource = None  # type: ignore[assignment]
 
 from ..config import get_settings
 
@@ -25,6 +29,9 @@ class Chunk:
 
 
 def _limits(mem_mb: int, cpu_s: int):  # type: ignore[no-untyped-def]
+    if resource is None:
+        return None
+
     def apply() -> None:
         resource.setrlimit(resource.RLIMIT_AS, (mem_mb * 1024 * 1024, mem_mb * 1024 * 1024))
         resource.setrlimit(resource.RLIMIT_CPU, (cpu_s, cpu_s))
@@ -41,8 +48,10 @@ def run_extraction(path: str, kind: str) -> dict:
         # Isolated interpreter (-I): no user site, no env-driven imports, script dir not on sys.path.
         proc = subprocess.run(  # noqa: S603 - fixed argv, no shell
             [sys.executable, "-I", child, path, kind],
-            capture_output=True, timeout=s.extract_timeout_s, env=env, cwd="/",
-            preexec_fn=_limits(s.extract_memory_mb, s.extract_timeout_s),
+            capture_output=True, timeout=s.extract_timeout_s, env=env,
+            cwd="/" if os.name != "nt" else os.path.dirname(os.path.abspath(child)),
+            preexec_fn=_limits(s.extract_memory_mb, s.extract_timeout_s) if os.name != "nt" else None,
+            creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) if os.name == "nt" else 0,
         )
     except subprocess.TimeoutExpired as e:
         raise ExtractionError("parser timeout") from e

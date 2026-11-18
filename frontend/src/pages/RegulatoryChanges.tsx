@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState, type ChangeEvent } from "react";
-import { api } from "../api";
-import { useMe } from "../ui";
+import { api, hasToken } from "../api";
+import { go, useMe } from "../ui";
 import "./regulatory-changes.css";
 
 const RegulatoryAnalyticsCharts = lazy(() => import("./RegulatoryAnalyticsCharts"));
@@ -14,6 +14,7 @@ type AnalyzeResponse = { result: Summary; run: ModelRun; source: { file_name: st
 export default function RegulatoryChanges() {
   const me = useMe();
   const tenants = me.memberships.filter((membership) => membership.permissions.includes("ai.run"));
+  const needsLogin = !hasToken();
   const [tenantId, setTenantId] = useState(tenants[0]?.tenant_id || "");
   const [file, setFile] = useState<File | null>(null);
   const [sourceLabel, setSourceLabel] = useState<"Sample Public Data" | "User original file">("Sample Public Data");
@@ -60,10 +61,12 @@ export default function RegulatoryChanges() {
       </fieldset>
       <label className="rd-tenant-select">Client workspace
         <select value={tenantId} onChange={(event) => setTenantId(event.target.value)} disabled={busy || tenants.length === 0}>
-          {tenants.length === 0 && <option value="">Sign in to a workspace with AI run permission</option>}
+          {tenants.length === 0 && <option value="">{needsLogin ? "Sign in to load your workspaces" : "No workspace with AI run permission"}</option>}
           {tenants.map((tenant) => <option key={tenant.tenant_id} value={tenant.tenant_id}>{tenant.tenant_name}</option>)}
         </select>
       </label>
+      {needsLogin && <div className="rd-auth-required" role="status"><span>Local reviewer mode is for navigation only. Sign in to use the FastAPI upload and AI flow.</span><button className="btn sm" onClick={() => go("/login")}>Sign in</button></div>}
+      {!needsLogin && tenants.length === 0 && <div className="rd-auth-required" role="status">Your account has no workspace with AI run permission. Ask a workspace administrator to grant access.</div>}
       <div className="rd-upload-privacy">The FastAPI backend parses the selected file in memory and sends extracted text to the configured AI provider. The source file is not saved; the backend records a tenant-scoped run with SHA-256 and usage metadata. Use only documents approved for this model.</div>
       <div className="rd-submit-row"><span>Output is generated only after the model call; failed calls show no draft.</span>
         <button className="btn primary" disabled={busy || !file || !tenantId} onClick={analyze}>{busy ? "Uploading and analyzing…" : "Analyze original document"}</button></div>

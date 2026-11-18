@@ -34,7 +34,7 @@ function Shell({ me, children }: { me: Me; children: React.ReactNode }) {
   return (
     <div className="shell">
       <aside className="side">
-        <a className="brand" href="#/" aria-label="RegDelta home"><img src="/regdelta-logo.png" alt="RegDelta" /></a>
+        <a className="brand" href="#/" aria-label="RegDelta home"><img src="/regdelta-emblem.svg" alt="" /><span>Reg<span>Delta</span></span></a>
         <nav className="nav">
           {links.map(([k, l]) => <a key={k} href={`#/${k}`} className={sec === k ? "active" : ""}>{l}</a>)}
         </nav>

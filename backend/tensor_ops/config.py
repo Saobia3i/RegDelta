@@ -31,6 +31,11 @@ def _float(name: str, default: float) -> float:
     return float(_env(name, str(default)))  # type: ignore[arg-type]
 
 
+def _sqlalchemy_url(value: str | None, fallback: str) -> str:
+    url = value or fallback
+    return url.replace("postgresql://", "postgresql+psycopg://", 1) if url.startswith("postgresql://") else url
+
+
 @dataclass(frozen=True)
 class Settings:
     env: str = "local"  # local | test | staging | production
@@ -119,8 +124,10 @@ def get_settings() -> Settings:
     env = _env("RegDelta_ENV", "local") or "local"
     s = Settings(
         env=env,
-        database_url=_env("RegDelta_DATABASE_URL", Settings.database_url),  # type: ignore[arg-type]
-        admin_database_url=_env("RegDelta_ADMIN_DATABASE_URL", Settings.admin_database_url),  # type: ignore[arg-type]
+        # Neon supplies a pooled DATABASE_URL for application traffic and an unpooled direct URL for migrations.
+        database_url=_sqlalchemy_url(_env_first("RegDelta_DATABASE_URL", "DATABASE_URL"), Settings.database_url),
+        admin_database_url=_sqlalchemy_url(_env_first("RegDelta_ADMIN_DATABASE_URL", "DATABASE_URL_UNPOOLED", "DATABASE_URL", "RegDelta_DATABASE_URL"),
+                                            Settings.admin_database_url),
         oidc_issuer=_env("RegDelta_OIDC_ISSUER"),
         oidc_audience=_env("RegDelta_OIDC_AUDIENCE"),
         oidc_jwks_url=_env("RegDelta_OIDC_JWKS_URL"),
