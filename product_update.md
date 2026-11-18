@@ -285,3 +285,18 @@ pm.cmd run build completed successfully (TypeScript check and Vite production bu
 - Verified backend `/readyz` HTTP 200, new route in live OpenAPI, and Vite proxy. Authenticated `POST /v1/regulatory/compare-framework-upload` with the repository's real `NIST-CSF-2.0.pdf` returned HTTP 200: filename `NIST-CSF-2.0.pdf`, 32 pages, 106 uploaded sections, and 165 code-detected findings; metrics for this uploaded file were precision 0.5306 and recall 0.1677 against filtered NIST OLIR relationships.
 - The frontend only renders those code results after the backend has parsed the selected upload. Before file selection, the comparison panel is empty. The same selected PDF is sent to the separate AI summary endpoint.
 - No additional AI request was made because the current free OpenRouter endpoint has already returned HTTP 429. No English/Bangla summary, action items, or citations are claimed as generated. The English video script says to record those only after a successful real response.
+
+### Free Gemini Integration & Docker Build Fix — 2026-11-19
+- **Status:** Complete & Verified
+- **Context:** Deploy failed during Docker build on Render (`ENOENT: no such file or directory, open '/backend/tensor_ops/content/regulatory/nist_csf_11_20_crosswalk.json'` in `scripts/build-nist-regulatory-data.cjs:136`). Also, user experienced HTTP 429 rate limits on OpenRouter and requested a permanent $0/free solution with Gemini.
+- **Changes Made:**
+  - `frontend/scripts/build-nist-regulatory-data.cjs`: Guarded the backend crosswalk write path with `fs.existsSync(path.dirname(backendData))`. During isolated Docker frontend builds where only `frontend/` is mounted, it avoids failing with ENOENT while still generating `frontend/src/data/nistRegulatoryData.json`.
+  - `backend/tensor_ops/ai/provider.py`: Added `GeminiProvider` using Google GenAI SDK (`google-genai`). Implemented schema cleaning for Gemini's response_schema dialect and automatic exponential backoff retry on transient 503/429 errors.
+  - `backend/tensor_ops/config.py`: Added `gemini` to allowed providers (`ai_provider`), added `gemini_api_key`, defaulted model to `gemini-3.1-flash-lite`, and added dynamic dotenv reload.
+  - `backend/requirements.lock`: Added `google-genai==3.5.0`, `google-auth==2.62.2`, `python-dotenv==1.2.4`, `tenacity==9.1.4`, `websockets==17.4`, `requests==2.34.2`, `urllib3==2.8.0`, `charset-normalizer==3.5.2` so Docker/Render builds install all required modules.
+  - `frontend/src/pages/RegulatoryAnalyticsCharts.tsx` & `RegulatoryDocumentAnalyzer.tsx`: Removed hardcoded "OpenRouter" strings in favor of generic/configured model terminology.
+- **Verification:**
+  - `npm run build` in `frontend/` succeeded with 0 errors.
+  - Backend `POST /v1/regulatory/analyze-upload` verified live with HTTP 200 (returned verified citations, Bangla summary, English summary, and draft actions).
+  - Backend `POST /v1/regulatory/analyze-impact` verified live with HTTP 200 (12 candidate NIST CSF transitions evaluated against client policy with change classifications).
+

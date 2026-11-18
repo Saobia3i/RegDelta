@@ -133,5 +133,7 @@ fs.mkdirSync(outDir, { recursive: true });
 const serialized = JSON.stringify(output, null, 2) + "\n";
 fs.writeFileSync(path.join(outDir, "nistRegulatoryData.json"), serialized);
 const backendData = path.resolve(root, "../backend/tensor_ops/content/regulatory/nist_csf_11_20_crosswalk.json");
-fs.writeFileSync(backendData, serialized);
+if (fs.existsSync(path.dirname(backendData))) {
+  fs.writeFileSync(backendData, serialized);
+}
 console.log(JSON.stringify({ rows: rows.length, changes: changes.length, metrics, demoCase: rows.find((r) => r.oldId === "PR.AC-1" && r.newId === "PR.AA-01") }, null, 2));
