@@ -11,7 +11,9 @@ from ..config import Settings, get_settings
 
 
 class ProviderError(RuntimeError):
-    pass
+    def __init__(self, message: str, status_code: int = 502) -> None:
+        super().__init__(message)
+        self.status_code = status_code
 
 
 @dataclass
@@ -85,7 +87,7 @@ class AnthropicProvider:
 
 
 class OpenRouterProvider:
-    """OpenRouter chat completions with strict JSON-schema output."""
+    """OpenRouter chat completions; free Gemma uses JSON mode plus server-side schema checks."""
     name = "openrouter"
 
     def __init__(self, s: Settings) -> None:
@@ -107,10 +109,19 @@ class OpenRouterProvider:
             "model": self.model,
             "messages": [{"role": "system", "content": req.system}, {"role": "user", "content": req.user}],
             "max_tokens": req.max_output_tokens,
-            "response_format": {"type": "json_schema", "json_schema": {
-                "name": safe_task, "strict": True, "schema": req.schema}},
             "provider": {"require_parameters": True},
         }
+        if self.model == "google/gemma-4-31b-it:free":
+            # This free endpoint supports JSON mode but not provider-enforced JSON Schema.
+            # Keep schema validation in our API and provide the schema in the prompt.
+            payload["messages"][0]["content"] += (
+                "\nReturn exactly one JSON object matching this JSON Schema, with no markdown: "
+                + json.dumps(req.schema, ensure_ascii=False)
+            )
+            payload["response_format"] = {"type": "json_object"}
+        else:
+            payload["response_format"] = {"type": "json_schema", "json_schema": {
+                "name": safe_task, "strict": True, "schema": req.schema}}
         try:
             response = self._httpx.post(self._url, headers=self._headers, json=payload, timeout=self._timeout)
             response.raise_for_status()
@@ -120,9 +131,9 @@ class OpenRouterProvider:
         except self._httpx.HTTPStatusError as e:
             code = e.response.status_code
             if code == 402:
-                raise ProviderError("OpenRouter rejected this run with HTTP 402 (billing or credit limit). Add credits/check the account billing; no analysis result was created.") from e
+                raise ProviderError("OpenRouter rejected this run with HTTP 402 (billing or credit limit). Add credits/check the account billing; no analysis result was created.", status_code=402) from e
             if code == 429:
-                raise ProviderError("OpenRouter rate limit reached. Wait briefly and retry; no analysis result was created.") from e
+                raise ProviderError("OpenRouter rate limit reached. Wait briefly and retry; no analysis result was created.", status_code=429) from e
             if code in (401, 403):
                 raise ProviderError(f"OpenRouter rejected the API credential or model access (HTTP {code}); check provider settings.") from e
             raise ProviderError(f"OpenRouter request failed (HTTP {code}); check key, model, and structured-output support") from e

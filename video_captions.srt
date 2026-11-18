@@ -1,0 +1,43 @@
+﻿1
+00:00:00,000 --> 00:00:08,000
+RegDelta connects regulatory framework changes to client policies and agency actions.
+
+2
+00:00:08,000 --> 00:00:18,000
+This prototype uses the public NIST CSF 1.1 to 2.0 transition crosswalk.
+
+3
+00:00:18,000 --> 00:00:30,000
+I’m providing a synthetic client policy. Gemini assesses it against the framework changes.
+
+4
+00:00:30,000 --> 00:00:41,000
+This run assesses the 12 changes most relevant to the policy. This shortlist does not represent full framework recall.
+
+5
+00:00:41,000 --> 00:00:52,000
+Each finding includes its rationale and a proposed fix. An unverified quote is not shown as evidence.
+
+6
+00:00:52,000 --> 00:00:57,000
+This is the Bangla action-plan summary for the agency.
+
+7
+00:00:57,000 --> 00:01:02,000
+All recommendations are drafts, not final compliance decisions.
+
+8
+00:01:02,000 --> 00:01:07,000
+The Bangla action plan briefly explains the gaps and suggested work.
+
+9
+00:01:07,000 --> 00:01:14,000
+Approve, edit, and reject are not yet connected to this workflow, so findings remain drafts for review.
+
+10
+00:01:14,000 --> 00:01:20,000
+GitHub issue creation is not connected yet, and no external action has been taken.
+
+11
+00:01:20,000 --> 00:01:30,000
+These are the model and usage details for this live run. All output is for human review.

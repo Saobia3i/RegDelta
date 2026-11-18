@@ -120,11 +120,18 @@ const output = {
   generatedAt: new Date().toISOString(),
   sources: Object.values(sources).map((s) => ({ ...s, sha256: sha256(s.file) })),
   sourceRowCounts: { csf11Subcategories: csf11.size, csf20Subcategories: csf20.size, olirRelationships: olirRows.length },
+  frameworkSubcategories: {
+    csf11: [...csf11.entries()].map(([id, text]) => ({ id, text })).sort((a, b) => a.id.localeCompare(b.id)),
+    csf20: [...csf20.entries()].map(([id, text]) => ({ id, text })).sort((a, b) => a.id.localeCompare(b.id)),
+  },
   metrics,
   olirRelationships: olirRows,
   transitions: rows,
   demoCaseId: "PR.AC-1-to-PR.AA-01",
 };
 fs.mkdirSync(outDir, { recursive: true });
-fs.writeFileSync(path.join(outDir, "nistRegulatoryData.json"), JSON.stringify(output, null, 2) + "\n");
+const serialized = JSON.stringify(output, null, 2) + "\n";
+fs.writeFileSync(path.join(outDir, "nistRegulatoryData.json"), serialized);
+const backendData = path.resolve(root, "../backend/tensor_ops/content/regulatory/nist_csf_11_20_crosswalk.json");
+fs.writeFileSync(backendData, serialized);
 console.log(JSON.stringify({ rows: rows.length, changes: changes.length, metrics, demoCase: rows.find((r) => r.oldId === "PR.AC-1" && r.newId === "PR.AA-01") }, null, 2));

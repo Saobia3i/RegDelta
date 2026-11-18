@@ -227,3 +227,25 @@ This work began after the user asked to run the project and demonstrate the vide
 - Applied theme tokens to the policy textarea so dark mode no longer renders a bright white field.
 - The prior single-workspace dropdown was not a role selector; it scoped the analysis to one tenant. Replaced it with a read-only workspace scope label when there is exactly one accessible workspace; the selector appears only when the user has multiple workspaces.
 - Frontend production build passed (633 modules, exit 0).
+
+### 2026-11-18 — Demo recording script
+
+- Created `video_script.md` with a 90-second, nine-shot walkthrough aligned to the current regulatory-impact screen and `video_captions.srt` with Bangla captions.
+- Script includes the requested Bangla summary at 00:52 for five seconds and a second showing inside the full result, plus source/crosswalk, impact map, DRAFT recommendations, quote verification, human approval gate, GitHub action gate, and actual run metadata.
+- Calls out the 12/211 candidate shortlist and does not claim approval/GitHub integration. Preflight says to wait for a successful real model run; HTTP 402 must not be replaced with a fake answer.
+
+### 2026-11-18 — Preserve upstream AI payment status
+
+- Confirmed the `.env` OpenRouter key is accepted, but the account credit endpoint currently reports zero available balance; the key's remaining spending cap is not account credit.
+- Updated provider/API error handling so upstream OpenRouter HTTP 402 and 429 are passed through with their actual status rather than being mislabeled as HTTP 502. Backend compile passed.
+- The live AI flow remains blocked until OpenRouter account credits are available; no fallback or canned response is used.
+
+## OpenRouter free model configuration � 2026-11-18
+- Selected the fixed Google Gemma 4 31B free endpoint (google/gemma-4-31b-it:free) for multilingual policy impact analysis and Bangla summaries; no random model routing.
+- OpenRouter documents this model as free, multilingual (140+ languages), and JSON-mode capable; it does not enforce JSON Schema, so the provider adapter requests JSON mode and the API continues to validate outputs and source quotes before displaying results.
+- Live end-to-end verification is pending after backend restart.
+
+### Live check after selecting the fixed free endpoint
+- Backend /readyz: HTTP 200 (eady). Frontend on port 5173: HTTP 200.
+- One OpenRouter request to google/gemma-4-31b-it:free returned HTTP 429 (rate limited) before a completion; no draft/result was created. No repeated retries were sent, to conserve the free endpoint's limits.
+- End-to-end policy analysis still needs a successful provider request and the user's real policy file. Do not present the smoke check as a client result.

@@ -307,7 +307,7 @@ async def analyze_impact(
     except ProviderError as exc:
         run.error = str(exc)[:500]
         s.flush(); s.commit()
-        raise HTTPException(502, str(exc)) from exc
+        raise HTTPException(exc.status_code, str(exc)) from exc
     except (ValueError, TypeError) as exc:
         run.status, run.error = "invalid_output", str(exc)[:500]
         s.flush(); s.commit()
@@ -413,7 +413,7 @@ async def analyze_upload(
         run.error = str(exc)[:500]
         s.flush()
         s.commit()
-        raise HTTPException(502, str(exc)) from exc
+        raise HTTPException(exc.status_code, str(exc)) from exc
     except ValueError as exc:
         run.status, run.error = "invalid_output", str(exc)[:500]
         if first_result:
