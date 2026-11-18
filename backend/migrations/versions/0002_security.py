@@ -25,7 +25,7 @@ APP_ROLE = "RegDelta_app"
 def upgrade() -> None:
     op.execute(f"""
     DO $$ BEGIN
-      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{APP_ROLE}') THEN
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE lower(rolname) = lower('{APP_ROLE}')) THEN
         CREATE ROLE {APP_ROLE} LOGIN;
       END IF;
     END $$;

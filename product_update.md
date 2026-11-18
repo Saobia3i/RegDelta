@@ -295,6 +295,8 @@ pm.cmd run build completed successfully (TypeScript check and Vite production bu
   - `backend/tensor_ops/config.py`: Added `gemini` to allowed providers (`ai_provider`), added `gemini_api_key`, defaulted model to `gemini-3.1-flash-lite`, and added dynamic dotenv reload.
   - `backend/requirements.lock`: Added `google-genai==3.5.0`, `google-auth==2.62.2`, `python-dotenv==1.2.4`, `tenacity==9.1.4`, `websockets==17.4`, `requests==2.34.2`, `urllib3==2.8.0`, `charset-normalizer==3.5.2` so Docker/Render builds install all required modules.
   - `frontend/src/pages/RegulatoryAnalyticsCharts.tsx` & `RegulatoryDocumentAnalyzer.tsx`: Removed hardcoded "OpenRouter" strings in favor of generic/configured model terminology.
+  - `video_script.md` & `video_captions.srt`: Streamlined into a punchy, 5-shot 60-second walkthrough covering upload ingestion, deterministic code compare, live Gemini multilingual analysis (English + Bangla), deterministic quote verification, and audit telemetry.
+
 - **Verification:**
   - `npm run build` in `frontend/` succeeded with 0 errors.
   - Backend `POST /v1/regulatory/analyze-upload` verified live with HTTP 200 (returned verified citations, Bangla summary, English summary, and draft actions).
