@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import json
 from dataclasses import dataclass, field
 from functools import lru_cache
 
@@ -47,6 +48,8 @@ class Settings:
     oidc_audience: str | None = None
     oidc_jwks_url: str | None = None
     dev_jwt_secret: str | None = None
+    demo_auth_enabled: bool = False
+    demo_credentials: dict[str, str] = field(default_factory=dict)
     require_mfa_for_privileged: bool = True
 
     # Storage / ingestion
@@ -106,14 +109,22 @@ class Settings:
         if self.is_local:
             return
         missing = [n for n, v in {
-            "RegDelta_OIDC_ISSUER": self.oidc_issuer,
-            "RegDelta_OIDC_AUDIENCE": self.oidc_audience,
-            "RegDelta_OIDC_JWKS_URL": self.oidc_jwks_url,
             "RegDelta_SECRETS_KEY": self.secrets_key,
         }.items() if not v]
+        if self.demo_auth_enabled:
+            if not self.dev_jwt_secret or len(self.dev_jwt_secret) < 32:
+                missing.append("RegDelta_DEV_JWT_SECRET (at least 32 characters for demo auth)")
+            if not self.demo_credentials:
+                missing.append("RegDelta_DEMO_CREDENTIALS (JSON email-to-password map)")
+        else:
+            missing.extend(n for n, v in {
+                "RegDelta_OIDC_ISSUER": self.oidc_issuer,
+                "RegDelta_OIDC_AUDIENCE": self.oidc_audience,
+                "RegDelta_OIDC_JWKS_URL": self.oidc_jwks_url,
+            }.items() if not v)
         if missing:
             raise ConfigError(f"Refusing to start in {self.env}: missing {', '.join(missing)}")
-        if self.dev_jwt_secret:
+        if self.dev_jwt_secret and not self.demo_auth_enabled:
             raise ConfigError("RegDelta_DEV_JWT_SECRET must not be set outside local")
         if self.scanner == "dev":
             raise ConfigError("The dev malware scanner is not allowed outside local; set RegDelta_SCANNER=clamav")
@@ -132,6 +143,8 @@ def get_settings() -> Settings:
         oidc_audience=_env("RegDelta_OIDC_AUDIENCE"),
         oidc_jwks_url=_env("RegDelta_OIDC_JWKS_URL"),
         dev_jwt_secret=_env("RegDelta_DEV_JWT_SECRET", "local-dev-only-secret-change-me-0123456789" if env in ("local", "test") else None),
+        demo_auth_enabled=_env("RegDelta_DEMO_AUTH_ENABLED", "false").lower() == "true",
+        demo_credentials={str(k).lower(): str(v) for k, v in json.loads(_env("RegDelta_DEMO_CREDENTIALS", "{}") or "{}").items()},
         require_mfa_for_privileged=_env("RegDelta_REQUIRE_MFA", "true") == "true",
         storage_dir=_env("RegDelta_STORAGE_DIR", Settings.storage_dir),  # type: ignore[arg-type]
         max_upload_bytes=_int("RegDelta_MAX_UPLOAD_BYTES", Settings.max_upload_bytes),

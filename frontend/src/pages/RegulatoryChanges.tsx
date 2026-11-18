@@ -93,7 +93,7 @@ export default function RegulatoryChanges() {
         <article className="rd-result-card rd-bangla-card"><span className="rd-kicker">বাংলা সারাংশ · DRAFT</span><p lang="bn">{result.result.bangla_summary}</p><small>Bangla teammate review required before use.</small></article>
         <article className="rd-result-card rd-actions-card"><span className="rd-kicker">ACTION PLAN · DRAFT</span><ol>{result.result.key_actions.map((item, index) => <li key={index}><b>{item.action}</b><small>Suggested owner: {item.owner_suggestion || "Human assignment required"}</small></li>)}</ol></article>
       </div>
-      <article className="rd-citations-card"><div className="rd-citation-title"><span className="rd-kicker">CODE-VERIFIED SOURCE CITATIONS</span><b>Each quote was checked against its cited page, ignoring only whitespace and Unicode typography differences.</b></div>
+      <article className="rd-citations-card"><div className="rd-citation-title"><span className="rd-kicker">CODE-VERIFIED SOURCE CITATIONS</span><b>Quotes are checked against the cited page with PDF line wraps, whitespace, and Unicode typography normalized. Near-verbatim quotes are replaced with an exact extracted source excerpt.</b></div>
         {result.result.citations.map((citation, index) => <div className="rd-citation" key={`${citation.page}-${index}`}>
           <span className="rd-verified-badge">PAGE {citation.page} · VERIFIED</span><div><b>{citation.supports}</b><blockquote>{citation.quote}</blockquote></div>
         </div>)}

@@ -181,3 +181,24 @@ This work began after the user asked to run the project and demonstrate the vide
 - **Known gaps/risks:** [remaining work and owner]
 - **Next phase:** [phase and immediate next action]
 - **Product spec changed?:** [No / Yes — summarize and update product.md]
+
+### 2026-11-18 — Temporary email/password sign-in for demo
+
+- **User request:** replace the confusing disabled-development-sign-in message with an ordinary email/password screen, supporting different existing account roles and a Render demo deployment.
+- **Delivered:** `frontend/src/pages/Login.tsx` now submits email/password to `POST /v1/auth/login`. The backend validates the email against `RegDelta_DEMO_CREDENTIALS` using constant-time comparison, loads the active account from PostgreSQL, and derives role and tenant permissions from existing database memberships. The client cannot select or escalate its own role.
+- **Deployment gate:** `RegDelta_DEMO_AUTH_ENABLED=true` explicitly enables this temporary password mode outside local/test. Production OIDC remains the default whenever that flag is false. Production demo mode requires a 32+ character `RegDelta_DEV_JWT_SECRET`, a non-empty JSON `RegDelta_DEMO_CREDENTIALS` map, and the existing production `RegDelta_SECRETS_KEY`; it does not claim MFA and issues tokens with MFA false. Use only for the prototype; replace it with a real OIDC identity provider before client use.
+- **Local demo accounts:** synthetic database users are mapped in the ignored local `.env`; a shared local-only demo password is configured there. The value is intentionally omitted from this tracked report. Roles remain database-owned.
+- **Port:** `backend/run-local.ps1 -ApiPort 8001` starts the API on 8001; Vite proxies API requests to that port. Port 8000 was occupied by an earlier stale local process.
+- **Acceptance evidence:** Neon query `select 1` succeeded. API `/healthz`, `/readyz`, `/v1/dev/users` returned 200. Password login succeeded for a staff delivery lead (`is_staff=true`, four memberships) and client account (`is_staff=false`, `client_admin` membership). `/v1/me` returned correct role context; bearer token was not printed. Backend `compileall` passed. Frontend TypeScript/Vite production build passed (632 modules; exit code 0).
+- **Limitations:** the temporary demo password flow is not MFA or production identity management. On Render, add the explicitly gated variables as secret environment variables; do not commit them. Staff token has `mfa=false`, so MFA-protected privileged actions remain blocked.
+- **Next:** deploy API and frontend, configure Render secrets for temporary demo auth (or OIDC), and run the original document upload flow after deployment.
+
+### 2026-11-18 — Citation verification recovery for PDF uploads
+
+- **Issue reproduced:** the real Gemini upload of the public NIST CSF 2.0 PDF returned HTTP 502 because a generated quotation on page 8 did not match extracted page text. The server correctly refused to show an unverified result.
+- **Fix:** `backend/tensor_ops/api/routers/regulatory.py` now preserves PDF line breaks and normalizes line-wrap hyphenation and Unicode typography. If a model quote is still near-verbatim, the verifier may align it only to the matching contiguous token window (minimum 10 tokens, at least 72% contiguous anchor, at least 94% token similarity) and replaces the model quote with the exact source substring. A clearly different/fabricated quote is still rejected. On citation mismatch, the backend makes at most one budget-checked Gemini repair call using only that page text plus the prior draft; the final full result is revalidated. Combined tokens, latency, request IDs, and cost are recorded for the AI run.
+- **UI disclosure:** citation panel now explains line-wrap normalization and that repaired quotes are exact extracted source excerpts.
+- **Live acceptance:** uploaded `NIST-CSF-2.0.pdf` as Sample Public Data through FastAPI with the real `google/gemini-3-flash-preview` provider. Result returned HTTP 200 with 32 extracted pages, 4 verified citations, English and Bangla summaries, 11,676 ms latency, reported cost `$0.007635`. Content and auth token were not printed. The output is still marked DRAFT / human review.
+- **Verifier checks:** reproduced a wrapped-word PDF source (`high-` + newline + `level`), confirmed a one-token quote typo is corrected to an exact extracted substring, and confirmed a fabricated citation is rejected.
+- **Build:** Python compile passed; frontend production build passed (632 modules, exit 0).
+- **Limitation:** citation text verification proves the quote appears in the cited page; it does not independently prove that the model's `supports` explanation is semantically correct. Human review remains required.

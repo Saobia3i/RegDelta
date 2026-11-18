@@ -1,6 +1,7 @@
 param(
   [switch]$Migrate,
-  [switch]$SeedDemo
+  [switch]$SeedDemo,
+  [int]$ApiPort = 8001
 )
 
 $ErrorActionPreference = 'Stop'
@@ -36,7 +37,7 @@ try {
     & $pythonExe -m RegDelta_ops.seed --demo
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   }
-  & $pythonExe -m uvicorn RegDelta_ops.api.main:app --host 127.0.0.1 --port 8000 --reload
+  & $pythonExe -m uvicorn RegDelta_ops.api.main:app --host 127.0.0.1 --port $ApiPort --reload
   exit $LASTEXITCODE
 }
 finally {

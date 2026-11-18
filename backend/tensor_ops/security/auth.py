@@ -1,4 +1,4 @@
-"""Authentication: OIDC JWT verification (required outside local) or dev HS256 tokens (local only)."""
+"""OIDC authentication with an explicitly gated temporary demo-password mode."""
 from __future__ import annotations
 
 import time
@@ -23,8 +23,8 @@ def _jwks_client(url: str) -> jwt.PyJWKClient:
 
 
 def issue_dev_token(settings: Settings, user_id: uuid.UUID, mfa: bool = True, ttl_s: int = 8 * 3600) -> str:
-    if not settings.is_local or not settings.dev_jwt_secret:
-        raise RuntimeError("Dev tokens are only available in the local environment")
+    if (not settings.is_local and not settings.demo_auth_enabled) or not settings.dev_jwt_secret:
+        raise RuntimeError("Demo tokens are disabled")
     now = int(time.time())
     claims = {"sub": str(user_id), "iat": now, "exp": now + ttl_s, "iss": "RegDelta-dev", "aud": "RegDelta-ops",
               "amr": ["pwd", "mfa"] if mfa else ["pwd"]}
@@ -33,7 +33,7 @@ def issue_dev_token(settings: Settings, user_id: uuid.UUID, mfa: bool = True, tt
 
 def verify_token(settings: Settings, token: str) -> dict[str, Any]:
     try:
-        if settings.is_local:
+        if settings.is_local or settings.demo_auth_enabled:
             return jwt.decode(token, settings.dev_jwt_secret, algorithms=["HS256"], audience="RegDelta-ops",
                               issuer="RegDelta-dev", options={"require": ["exp", "sub"]})
         key = _jwks_client(settings.oidc_jwks_url).get_signing_key_from_jwt(token)  # type: ignore[arg-type]

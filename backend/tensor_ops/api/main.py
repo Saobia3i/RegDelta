@@ -84,6 +84,7 @@ def create_app() -> FastAPI:
     for r in (me, dev, assurance, tenants, engagements, controls, evidence, ai, regulatory, work, questionnaires, snapshots, policies,
               reports, connectors, metrics, deletion):
         app.include_router(r.router, prefix="/v1")
+    app.include_router(dev.auth_router, prefix="/v1")
 
     static = settings.static_dir
     if static and Path(static).is_dir():
