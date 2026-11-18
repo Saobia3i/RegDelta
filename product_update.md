@@ -302,3 +302,13 @@ pm.cmd run build completed successfully (TypeScript check and Vite production bu
   - Backend `POST /v1/regulatory/analyze-upload` verified live with HTTP 200 (returned verified citations, Bangla summary, English summary, and draft actions).
   - Backend `POST /v1/regulatory/analyze-impact` verified live with HTTP 200 (12 candidate NIST CSF transitions evaluated against client policy with change classifications).
 
+### Restore local sign-in after Neon provisioning — 2026-11-19
+- Diagnosed the reported `POST /v1/auth/login` HTTP 500: the API reached Neon, but the configured database had no application schema (`users` relation missing), so login and user lookup raised a database error.
+- Applied Alembic migrations to head (`0003`) and seeded the requested synthetic local demo users, memberships, and roles using the project seed command. No credentials are recorded in this update.
+- Changed the Vite development proxy to use `127.0.0.1:8004` explicitly, avoiding `localhost` address-family ambiguity. The local API is running on port 8004 and reads project `.env` values ahead of inherited shell settings.
+- Verified `/readyz` HTTP 200, `/v1/dev/users` HTTP 200, login through `http://127.0.0.1:5173/v1/auth/login` HTTP 200, and `/v1/me` for the staff account with three workspaces and `ai.run` access. The previous HTTP 500 is resolved.
+### Submission-video criteria clarified — 2026-11-19
+- Replaced the prior five-shot draft with the user-provided nine-shot target: source check, CSF change list, labelled sample-policy impact, DRAFT quotes, verifier, Bangla summary (five-second insert at 00:52 and repeated in the full result), human decisions, GitHub issues, and actual run log.
+- Added 02:22 model/results and 02:30 baseline-to-target KPI cards. Every unmeasured value remains TBA; no invented baselines, targets, model metrics, cost, or latency.
+- Tagline `শনাক্ত করুন • যাচাই করুন • মেনে চলুন` is marked pending review by a Bangla speaker.
+- Recorded a production gate: the current upload-and-summary UI cannot truthfully produce the entire requested nine-shot flow. Source polling, the sample-policy impact-map UI, regulatory approve/edit/reject, and GitHub issue creation remain unavailable; AI output is also currently rate-limited (OpenRouter 429). The script is a target storyboard, not a claim those shots have been recorded.
