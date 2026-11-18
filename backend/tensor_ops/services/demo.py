@@ -103,9 +103,9 @@ def build_demo_engagements(ids: dict[str, uuid.UUID]) -> None:
     api.upload("client_b", globex["id"], "Okta MFA policy.txt", "Okta sign-on policy requires MFA for every user and admin.")
 
     tz = api("lead", "POST", "/v1/engagements", json={
-        "tenant_id": str(ids["tensor"]), "name": "Tensor's own SOC 2 (tenant zero)", "frameworks": ["SOC2"],
+        "tenant_id": str(ids["RegDelta"]), "name": "RegDelta's own SOC 2 (tenant zero)", "frameworks": ["SOC2"],
         "service_type": "internal", "signer_id": str(ids["qa"])})
-    api.upload("lead", tz["id"], "Tensor Access Control Standard.txt", DOCS["Access Control Standard.txt"].replace("Google", "Tensor Google"))
+    api.upload("lead", tz["id"], "RegDelta Access Control Standard.txt", DOCS["Access Control Standard.txt"].replace("Google", "RegDelta Google"))
     run_pending(200)
     api("lead", "POST", "/v1/snapshots", json={
         "company_name": "Initech Cloud (prospect, synthetic)", "contact_name": "Peter G.", "contact_email": "peter@initech.example",

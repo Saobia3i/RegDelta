@@ -58,7 +58,7 @@ def create(body: SnapshotIn, p: Principal = Depends(principal), s: Session = Dep
         raise HTTPException(status_code=403, detail="Forbidden")
     signer = s.get(User, body.signer_id)
     if not signer or not signer.can_sign or not signer.is_staff:
-        raise HTTPException(status_code=422, detail="signer must be an authorised Tensor signer")
+        raise HTTPException(status_code=422, detail="signer must be an authorised RegDelta signer")
     bad = {k for k, v in body.intake.items() if v not in snap.ANSWER_GAP}
     if bad:
         raise HTTPException(status_code=422, detail=f"answers must be yes/partial/no/unknown: {sorted(bad)[:3]}")
@@ -148,7 +148,7 @@ def convert(sid: uuid.UUID, p: Principal = Depends(principal), s: Session = Depe
         service_type="founding_client" if sn.founding_client else ("white_label" if t.partner_id else "audit_ready_year"),
         frameworks=sn.frameworks, start_date=date.fromisoformat(sn.result["start_date"]),
         target_date=date.fromisoformat(sn.result["audit_ready_target"]), signer_id=sn.signer_id,
-        contract_value_usd=q["tensor_total_year1"] or 0))
+        contract_value_usd=q["RegDelta_total_year1"] or 0))
     sn.status = "won"
     audit.record(s, "snapshot.converted", tenant_id=t.id, actor_id=p.id, target_type="engagement", target_id=e.id)
     s.commit()
@@ -161,7 +161,7 @@ def document(sid: uuid.UUID, p: Principal = Depends(principal), s: Session = Dep
     r = sn.result or {}
     so = s.execute(select(SignOff).where(SignOff.subject_id == sn.id)).scalars().first()
     t = s.get(Tenant, sn.tenant_id)
-    brand, color = "TensorInfoSec", "#b42318"
+    brand, color = "RegDeltaInfoSec", "#b42318"
     if t and t.partner_id:
         pt = s.get(Partner, t.partner_id)
         if pt:
@@ -186,7 +186,7 @@ table{{border-collapse:collapse;width:100%;font-size:14px;margin-bottom:1rem}}td
 <b>{e(r.get('audit_ready_target', ''))}</b> · {e(r.get('client_effort', ''))}</p>{signed}
 <h2>Gaps</h2><table><tr><th>Control</th><th>Gap</th><th>Your answer</th><th>Priority</th><th>Planned</th></tr>{rows}</table>
 <h2>Dated 8-week plan</h2><table>{plan}</table>
-<h2>All-in quote (year 1)</h2><table>{lines}<tr><td><b>Tensor total</b></td><td style='text-align:right'><b>{money(q.get('tensor_total_year1'))}</b></td></tr>
+<h2>All-in quote (year 1)</h2><table>{lines}<tr><td><b>RegDelta total</b></td><td style='text-align:right'><b>{money(q.get('RegDelta_total_year1'))}</b></td></tr>
 <tr><td>Independent auditor fee ({e(q.get('auditor_fee_status', ''))})</td><td style='text-align:right'>{money(sum(v for v in (q.get('auditor_fee_estimates') or {}).values() if v) if q.get('all_in_total_year1') else None)}</td></tr>
 <tr><td><b>All-in total</b></td><td style='text-align:right'><b>{money(q.get('all_in_total_year1'))}</b></td></tr></table>
 <p>{e(q.get('payment_terms', ''))}<br>{e(q.get('guarantee', ''))}<br>{e(q.get('note', ''))}</p>

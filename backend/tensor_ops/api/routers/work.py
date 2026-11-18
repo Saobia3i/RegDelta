@@ -66,7 +66,7 @@ def patch_task(tid: uuid.UUID, body: TaskPatch, p: Principal = Depends(principal
         if body.status in REMEDIATION_STAFF_ONLY:
             p.require(t.tenant_id, "remediation.verify")
             if not p.user.is_staff:
-                raise HTTPException(status_code=403, detail="only Tensor experts verify remediation")
+                raise HTTPException(status_code=403, detail="only RegDelta experts verify remediation")
             t.verified_by = p.id if body.status == "verified_closed" else None
         t.status = body.status
     if body.owner_user_id or body.due_date:

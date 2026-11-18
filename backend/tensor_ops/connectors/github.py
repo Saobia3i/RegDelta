@@ -35,7 +35,7 @@ class GitHubConnector:
         self.org, self.max_repos = org, max_repos
         self._c = httpx.Client(base_url=base_url, transport=transport, timeout=20.0, follow_redirects=False,
                                headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json",
-                                        "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "tensor-ops-connector"})
+                                        "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "RegDelta-ops-connector"})
 
     def _get(self, path: str, params: dict[str, Any] | None = None, allow_404: bool = False) -> httpx.Response:
         if path.startswith("http"):

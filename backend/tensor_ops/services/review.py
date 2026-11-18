@@ -163,7 +163,7 @@ def create_signoff(s: Session, *, tenant_id: uuid.UUID, engagement_id: uuid.UUID
     if not signer.can_sign or not signer.is_staff:
         raise HTTPException(status_code=403, detail="user is not an authorised signer")
     so = SignOff(tenant_id=tenant_id, engagement_id=engagement_id, subject_type=subject_type, subject_id=subject_id,
-                 signer_id=signer.id, signer_name=signer.name, signer_title=signer.expert_title or "Tensor expert",
+                 signer_id=signer.id, signer_name=signer.name, signer_title=signer.expert_title or "RegDelta expert",
                  statement=statement, content_sha256=content_hash(content))
     s.add(so)
     s.flush()

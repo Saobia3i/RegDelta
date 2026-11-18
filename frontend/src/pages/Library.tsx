@@ -8,7 +8,7 @@ export default function Library() {
   return (
     <>
       <h1>Control library</h1>
-      <p className="sub">Tensor-authored controls. Framework mappings cite requirement IDs only; no licensed standard text is stored. Mappings are drafts until an expert validates them.</p>
+      <p className="sub">RegDelta-authored controls. Framework mappings cite requirement IDs only; no licensed standard text is stored. Mappings are drafts until an expert validates them.</p>
       <div className="row" style={{ marginBottom: 12 }}>
         <select style={{ width: 220 }} value={fw} onChange={(e) => setFw(e.target.value)}><option value="">All frameworks</option>
           {(f.data || []).map((x) => <option key={x.code} value={x.code}>{x.code} · {x.version}</option>)}</select>

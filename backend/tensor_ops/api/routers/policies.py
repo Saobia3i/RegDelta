@@ -1,4 +1,4 @@
-"""Policy drafting from Tensor templates -> client approval -> published as evidence (through the normal pipeline)."""
+"""Policy drafting from RegDelta templates -> client approval -> published as evidence (through the normal pipeline)."""
 from __future__ import annotations
 
 import uuid

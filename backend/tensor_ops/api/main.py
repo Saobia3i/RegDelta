@@ -33,14 +33,14 @@ from .routers import (
     work,
 )
 
-log = logging.getLogger("tensor.api")
+log = logging.getLogger("RegDelta.api")
 
 
 def create_app() -> FastAPI:
     settings = get_settings()  # validates config; fails closed outside local
     configure_logging()
     app = FastAPI(title="RegDelta API", version="1.0.0",
-                  description="Internal AI-assisted delivery platform for TensorInfoSec managed compliance. "
+                  description="Internal AI-assisted delivery platform for RegDeltaInfoSec managed compliance. "
                               "AI proposes; named experts decide.")
 
     @app.middleware("http")

@@ -19,7 +19,7 @@ TENANT_TABLES = [
 APPEND_ONLY = ["audit_events", "signoffs", "review_decisions"]
 SCOPE = "(string_to_array(nullif(current_setting('app.tenant_ids', true), ''), ','))::uuid[]"
 USER = "nullif(current_setting('app.user_id', true), '')::uuid"
-APP_ROLE = "tensor_app"
+APP_ROLE = "RegDelta_app"
 
 
 def upgrade() -> None:
@@ -40,7 +40,7 @@ def upgrade() -> None:
 
     # Append-only tables: revoke and enforce with a trigger (defends even against grant mistakes).
     op.execute("""
-    CREATE OR REPLACE FUNCTION tensor_block_mutation() RETURNS trigger AS $$
+    CREATE OR REPLACE FUNCTION RegDelta_block_mutation() RETURNS trigger AS $$
     BEGIN
       IF current_setting('app.allow_purge', true) = 'on' AND TG_OP = 'DELETE' THEN
         RETURN OLD;  -- only the owner-run, approved deletion workflow sets this
@@ -51,7 +51,7 @@ def upgrade() -> None:
     for t in APPEND_ONLY:
         op.execute(f"REVOKE UPDATE, DELETE ON {t} FROM {APP_ROLE}")
         op.execute(f"""CREATE TRIGGER {t}_append_only BEFORE UPDATE OR DELETE ON {t}
-                       FOR EACH ROW EXECUTE FUNCTION tensor_block_mutation()""")
+                       FOR EACH ROW EXECUTE FUNCTION RegDelta_block_mutation()""")
 
     # Row-level security.
     for t in TENANT_TABLES:
@@ -69,19 +69,19 @@ def upgrade() -> None:
 
     # Full-text search vector maintained by trigger.
     op.execute("""
-    CREATE OR REPLACE FUNCTION tensor_chunk_tsv() RETURNS trigger AS $$
+    CREATE OR REPLACE FUNCTION RegDelta_chunk_tsv() RETURNS trigger AS $$
     BEGIN NEW.tsv := to_tsvector('english', coalesce(NEW.text, '')); RETURN NEW; END $$ LANGUAGE plpgsql;
     """)
     op.execute("""CREATE TRIGGER evidence_chunks_tsv BEFORE INSERT OR UPDATE OF text ON evidence_chunks
-                  FOR EACH ROW EXECUTE FUNCTION tensor_chunk_tsv()""")
+                  FOR EACH ROW EXECUTE FUNCTION RegDelta_chunk_tsv()""")
 
 
 def downgrade() -> None:
     op.execute("DROP TRIGGER IF EXISTS evidence_chunks_tsv ON evidence_chunks")
-    op.execute("DROP FUNCTION IF EXISTS tensor_chunk_tsv")
+    op.execute("DROP FUNCTION IF EXISTS RegDelta_chunk_tsv")
     for t in APPEND_ONLY:
         op.execute(f"DROP TRIGGER IF EXISTS {t}_append_only ON {t}")
-    op.execute("DROP FUNCTION IF EXISTS tensor_block_mutation")
+    op.execute("DROP FUNCTION IF EXISTS RegDelta_block_mutation")
     for t in TENANT_TABLES:
         op.execute(f"DROP POLICY IF EXISTS {t}_tenant_isolation ON {t}")
         op.execute(f"ALTER TABLE {t} DISABLE ROW LEVEL SECURITY")

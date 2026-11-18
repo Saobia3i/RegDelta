@@ -1,8 +1,8 @@
 """Versioned AI evaluation harness (no database needed).
 
-    python -m evals.run_evals                 # held-out set, provider from TENSOR_AI_PROVIDER (mock by default)
+    python -m evals.run_evals                 # held-out set, provider from RegDelta_AI_PROVIDER (mock by default)
     python -m evals.run_evals --split dev     # tuning set
-    TENSOR_AI_PROVIDER=anthropic TENSOR_ANTHROPIC_API_KEY=... python -m evals.run_evals --thresholds evals/thresholds_model.json
+    RegDelta_AI_PROVIDER=anthropic RegDelta_ANTHROPIC_API_KEY=... python -m evals.run_evals --thresholds evals/thresholds_model.json
 
 Measures mapping precision/recall, decision accuracy, citation validity, injection detection, stale detection,
 adversarial-output rejection, latency and cost. Exits non-zero if a SAFETY threshold is breached (CI gate).
@@ -18,13 +18,13 @@ import time
 from datetime import date
 from pathlib import Path
 
-os.environ.setdefault("TENSOR_ENV", "test")
+os.environ.setdefault("RegDelta_ENV", "test")
 
-from tensor_ops.ai import prompts, schemas  # noqa: E402
-from tensor_ops.ai.provider import ProviderError, Request, get_provider  # noqa: E402
-from tensor_ops.ai.validation import InvalidOutput, validate_evidence_review  # noqa: E402
-from tensor_ops.config import get_settings  # noqa: E402
-from tensor_ops.content.library import CONTROLS  # noqa: E402
+from RegDelta_ops.ai import prompts, schemas  # noqa: E402
+from RegDelta_ops.ai.provider import ProviderError, Request, get_provider  # noqa: E402
+from RegDelta_ops.ai.validation import InvalidOutput, validate_evidence_review  # noqa: E402
+from RegDelta_ops.config import get_settings  # noqa: E402
+from RegDelta_ops.content.library import CONTROLS  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_THRESHOLDS = {

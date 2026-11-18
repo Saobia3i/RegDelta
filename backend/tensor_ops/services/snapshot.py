@@ -1,7 +1,7 @@
 """Free Readiness Snapshot: deterministic gap scoring, a dated 8-week plan and an all-in quote.
 
 Deterministic on purpose: the Snapshot is a sales document with a named signer, so every line must be traceable
-to the prospect's own answers and Tensor's control library, not to model judgement.
+to the prospect's own answers and RegDelta's control library, not to model judgement.
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ WEEK_OF_DOMAIN = {
     "Operations": 5, "Resilience": 6, "Vendors": 6, "Payments": 5, "AI governance": 6,
 }
 MILESTONES = [
-    (1, "Kick-off, scope and system inventory; policy set drafted from Tensor templates"),
+    (1, "Kick-off, scope and system inventory; policy set drafted from RegDelta templates"),
     (2, "Identity and access: MFA, SSO, least privilege, joiner/leaver process"),
     (3, "Change management and endpoint security evidence"),
     (4, "Infrastructure, encryption and data handling evidence"),
@@ -101,8 +101,8 @@ def compute(s: Session, *, company: str, frameworks: list[str], employee_count: 
         "quote": quote(employee_count, frameworks, founding=founding, pentest=pentest, soc2_type=soc2_type,
                        partner_price=partner_price),
         "signer": {"name": signer_name, "title": signer_title},
-        "method": "Scored from the prospect's intake answers against Tensor's control library "
-                  "(yes = in place, partial = half gap, no/unknown = full gap), weighted by Tensor's effort estimates.",
+        "method": "Scored from the prospect's intake answers against RegDelta's control library "
+                  "(yes = in place, partial = half gap, no/unknown = full gap), weighted by RegDelta's effort estimates.",
         "disclaimer": "This snapshot is a readiness estimate, not an audit opinion. Only an independent audit firm "
                       "can issue a SOC 2 report or ISO certificate.",
         "generated_at": datetime.now(timezone.utc).isoformat(),

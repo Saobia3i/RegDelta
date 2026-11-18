@@ -1,4 +1,4 @@
-"""Policy drafting from Tensor-authored templates ("templates for policies, never for conclusions")."""
+"""Policy drafting from RegDelta-authored templates ("templates for policies, never for conclusions")."""
 from __future__ import annotations
 
 import re

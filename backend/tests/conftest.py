@@ -4,11 +4,11 @@ from __future__ import annotations
 import os
 import tempfile
 
-os.environ.setdefault("TENSOR_ENV", "test")
-os.environ.setdefault("TENSOR_DATABASE_URL", "postgresql+psycopg://tensor_app:devpass@/tensor_test?host=/tmp")
-os.environ.setdefault("TENSOR_ADMIN_DATABASE_URL", "postgresql+psycopg://tensor_owner:devpass@/tensor_test?host=/tmp")
-os.environ["TENSOR_STORAGE_DIR"] = tempfile.mkdtemp(prefix="tensor-objects-")
-os.environ.setdefault("TENSOR_AI_PROVIDER", "mock")
+os.environ.setdefault("RegDelta_ENV", "test")
+os.environ.setdefault("RegDelta_DATABASE_URL", "postgresql+psycopg://RegDelta_app:devpass@/RegDelta_test?host=/tmp")
+os.environ.setdefault("RegDelta_ADMIN_DATABASE_URL", "postgresql+psycopg://RegDelta_owner:devpass@/RegDelta_test?host=/tmp")
+os.environ["RegDelta_STORAGE_DIR"] = tempfile.mkdtemp(prefix="RegDelta-objects-")
+os.environ.setdefault("RegDelta_AI_PROVIDER", "mock")
 
 import io  # noqa: E402
 import uuid  # noqa: E402
@@ -20,7 +20,7 @@ from alembic.config import Config  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import create_engine, text  # noqa: E402
 
-from tensor_ops.config import get_settings  # noqa: E402
+from RegDelta_ops.config import get_settings  # noqa: E402
 
 BACKEND = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -35,8 +35,8 @@ def database() -> dict[str, uuid.UUID]:
     cfg = Config(os.path.join(BACKEND, "alembic.ini"))
     cfg.set_main_option("script_location", os.path.join(BACKEND, "migrations"))
     command.upgrade(cfg, "head")
-    from tensor_ops.db import admin_session
-    from tensor_ops.seed import load_demo, load_reference
+    from RegDelta_ops.db import admin_session
+    from RegDelta_ops.seed import load_demo, load_reference
     with admin_session() as s:
         load_reference(s)
         ids = load_demo(s)
@@ -51,7 +51,7 @@ def ids(database: dict[str, uuid.UUID]) -> dict[str, uuid.UUID]:
 
 @pytest.fixture(scope="session")
 def client(database) -> TestClient:  # type: ignore[no-untyped-def]
-    from tensor_ops.api.main import app
+    from RegDelta_ops.api.main import app
     return TestClient(app)
 
 
@@ -99,7 +99,7 @@ class Api:
 
 
 def drain() -> int:
-    from tensor_ops.jobs.queue import run_pending
+    from RegDelta_ops.jobs.queue import run_pending
     return run_pending(200, ignore_delay=True)
 
 
@@ -111,11 +111,11 @@ def api(client: TestClient, ids: dict[str, uuid.UUID]) -> Api:
 @pytest.fixture(autouse=True)
 def _reset_overrides():  # type: ignore[no-untyped-def]
     yield
-    from tensor_ops.ai.provider import set_provider_override
-    from tensor_ops.connectors.service import set_factory_override
+    from RegDelta_ops.ai.provider import set_provider_override
+    from RegDelta_ops.connectors.service import set_factory_override
     set_provider_override(None)
     set_factory_override(None)
-    from tensor_ops.api.deps import limiter
+    from RegDelta_ops.api.deps import limiter
     limiter._hits.clear()
 
 

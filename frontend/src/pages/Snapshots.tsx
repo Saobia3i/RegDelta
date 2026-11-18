@@ -10,12 +10,12 @@ export function SnapshotList() {
         <button className="btn primary" onClick={() => go("/snapshots/new")}>New snapshot</button></div>
       <Err e={s.error} />
       {!s.data ? <Loading /> : <div className="card"><table>
-        <thead><tr><th>Prospect</th><th>Frameworks</th><th>Readiness</th><th>Quote (Tensor, yr 1)</th><th>Status</th><th>Due (SLA)</th></tr></thead>
+        <thead><tr><th>Prospect</th><th>Frameworks</th><th>Readiness</th><th>Quote (RegDelta, yr 1)</th><th>Status</th><th>Due (SLA)</th></tr></thead>
         <tbody>{s.data.map((x) => {
           const late = ["drafted", "intake"].includes(x.status) && x.due_at && new Date(x.due_at) < new Date();
           return <tr key={x.id} className="click" onClick={() => go(`/snapshots/${x.id}`)}>
             <td><b>{x.company}</b><br /><span className="muted small">{x.contact_name} · {x.contact_email}</span></td><td>{x.frameworks.join(", ")}</td>
-            <td>{x.result?.readiness_percent}%</td><td>{money(x.result?.quote?.tensor_total_year1)}{x.founding_client && <> <span className="pill info">founding</span></>}</td>
+            <td>{x.result?.readiness_percent}%</td><td>{money(x.result?.quote?.RegDelta_total_year1)}{x.founding_client && <> <span className="pill info">founding</span></>}</td>
             <td><Pill s={x.status} /></td><td className="small" style={{ color: late ? "var(--accent)" : undefined }}>{dt(x.due_at)}</td></tr>;
         })}</tbody></table>{s.data.length === 0 && <p className="muted">No snapshots yet.</p>}</div>}
     </>

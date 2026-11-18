@@ -82,7 +82,7 @@ def receive_upload(s: Session, ev: EvidenceItem, token: str, data: bytes, user_i
 def ingest_system_document(s: Session, *, tenant_id: uuid.UUID, engagement_id: uuid.UUID, title: str,
                            filename: str, data: bytes, source: str, source_ref: str | None,
                            actor_id: uuid.UUID | None) -> EvidenceItem:
-    """Evidence produced by Tensor itself (connector snapshots, approved policies). Still goes through the pipeline."""
+    """Evidence produced by RegDelta itself (connector snapshots, approved policies). Still goes through the pipeline."""
     tenant = s.get(Tenant, tenant_id)
     ev = EvidenceItem(tenant_id=tenant_id, engagement_id=engagement_id, title=title, original_filename=filename,
                       size_bytes=len(data), object_key="", source=source, source_ref=source_ref, uploaded_by=actor_id,

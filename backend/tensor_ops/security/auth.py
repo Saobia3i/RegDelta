@@ -26,7 +26,7 @@ def issue_dev_token(settings: Settings, user_id: uuid.UUID, mfa: bool = True, tt
     if not settings.is_local or not settings.dev_jwt_secret:
         raise RuntimeError("Dev tokens are only available in the local environment")
     now = int(time.time())
-    claims = {"sub": str(user_id), "iat": now, "exp": now + ttl_s, "iss": "tensor-dev", "aud": "tensor-ops",
+    claims = {"sub": str(user_id), "iat": now, "exp": now + ttl_s, "iss": "RegDelta-dev", "aud": "RegDelta-ops",
               "amr": ["pwd", "mfa"] if mfa else ["pwd"]}
     return jwt.encode(claims, settings.dev_jwt_secret, algorithm="HS256")
 
@@ -34,8 +34,8 @@ def issue_dev_token(settings: Settings, user_id: uuid.UUID, mfa: bool = True, tt
 def verify_token(settings: Settings, token: str) -> dict[str, Any]:
     try:
         if settings.is_local:
-            return jwt.decode(token, settings.dev_jwt_secret, algorithms=["HS256"], audience="tensor-ops",
-                              issuer="tensor-dev", options={"require": ["exp", "sub"]})
+            return jwt.decode(token, settings.dev_jwt_secret, algorithms=["HS256"], audience="RegDelta-ops",
+                              issuer="RegDelta-dev", options={"require": ["exp", "sub"]})
         key = _jwks_client(settings.oidc_jwks_url).get_signing_key_from_jwt(token)  # type: ignore[arg-type]
         return jwt.decode(token, key.key, algorithms=["RS256", "ES256"], audience=settings.oidc_audience,
                           issuer=settings.oidc_issuer, options={"require": ["exp", "sub", "iss", "aud"]})

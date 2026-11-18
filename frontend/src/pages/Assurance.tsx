@@ -153,7 +153,7 @@ export function ImportCenter({ eng, me, reload }: P) {
           <button className="btn primary" disabled={!file || busy || !log || log.errors || log.applied} onClick={() => send(true)}>Apply import</button>
         </div>
         <div className="note" style={{ marginTop: 12 }}>
-          {kind === "assessment" ? "A self-assessment is recorded next to each control. It never marks a control implemented: that needs approved evidence and an expert. Tensor staff imports create remediation tasks for gaps."
+          {kind === "assessment" ? "A self-assessment is recorded next to each control. It never marks a control implemented: that needs approved evidence and an expert. RegDelta staff imports create remediation tasks for gaps."
             : "Each row becomes a test. Deviations automatically raise exceptions (EXC-###) with a linked remediation task; severity follows the control's risk rating."}
         </div>
         <p className="small faint">Expected columns: {kind === "assessment" ? "Standard Ref · Compliance (Fully / Partially / Not Compliant / Not Applicable) · optional Owner, Priority, Notes, Evidence" : "Control Ref · Test Date · Samples Tested · Deviations · optional Result, Population, Test Procedure, Owner, Notes"}</p>

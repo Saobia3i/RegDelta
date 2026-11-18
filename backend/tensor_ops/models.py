@@ -47,7 +47,7 @@ class Timestamps:
 
 # ---------------------------------------------------------------- global (non-tenant) tables
 class Partner(Timestamps, Base):
-    """White-label partner (vCISO / MSP) that resells Tensor delivery under its own brand."""
+    """White-label partner (vCISO / MSP) that resells RegDelta delivery under its own brand."""
     __tablename__ = "partners"
     id: Mapped[uuid.UUID] = pk()
     name: Mapped[str] = mapped_column(String(200))
@@ -87,11 +87,11 @@ class FrameworkRequirement(Base):
     id: Mapped[uuid.UUID] = pk()
     framework_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("frameworks.id", ondelete="CASCADE"), index=True)
     ref: Mapped[str] = mapped_column(String(40))
-    paraphrase: Mapped[str] = mapped_column(Text)  # Tensor's own short paraphrase, never normative text
+    paraphrase: Mapped[str] = mapped_column(Text)  # RegDelta's own short paraphrase, never normative text
 
 
 class Control(Timestamps, Base):
-    """Tensor's internal control ontology (Tensor-authored wording)."""
+    """RegDelta's internal control ontology (RegDelta-authored wording)."""
     __tablename__ = "controls"
     id: Mapped[uuid.UUID] = pk()
     code: Mapped[str] = mapped_column(String(40), unique=True)  # e.g. TC-AC-01
@@ -149,7 +149,7 @@ class Tenant(Timestamps, Base):
     employee_count: Mapped[int | None] = mapped_column(Integer)
     industry: Mapped[str | None] = mapped_column(String(80))
     retention_days: Mapped[int] = mapped_column(Integer, default=730)
-    is_internal: Mapped[bool] = mapped_column(Boolean, default=False)  # Tensor itself as "tenant zero"
+    is_internal: Mapped[bool] = mapped_column(Boolean, default=False)  # RegDelta itself as "tenant zero"
 
 
 class Membership(Timestamps, Base):

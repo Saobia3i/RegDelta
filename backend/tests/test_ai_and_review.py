@@ -6,9 +6,9 @@ from typing import Any
 
 from sqlalchemy import select
 
-from tensor_ops.ai.provider import AIResult, Request, set_provider_override
-from tensor_ops.db import admin_session
-from tensor_ops.models import AIRun
+from RegDelta_ops.ai.provider import AIResult, Request, set_provider_override
+from RegDelta_ops.db import admin_session
+from RegDelta_ops.models import AIRun
 
 from .conftest import ACCESS_REVIEW, MFA_POLICY, drain
 
@@ -109,7 +109,7 @@ def test_prompt_injection_document_is_inert(api):
     assert any("prompt injection" in w for w in art["warnings"])
     assert ev["status"] == "proposed" and all(ln["status"] == "proposed" for ln in ev["links"])
     # And the prompt itself delimits the content as untrusted
-    from tensor_ops.ai import prompts
+    from RegDelta_ops.ai import prompts
     assert "untrusted" in prompts.EVIDENCE_REVIEW_SYSTEM and "<evidence" in prompts.evidence_review_user(
         "2026-01-01", "t", [], [{"handle": "E1", "page": 1, "text": "x"}])
 
@@ -122,7 +122,7 @@ def test_insufficient_evidence_path(api):
 
 
 def test_budget_enforced(api, monkeypatch):
-    from tensor_ops.config import get_settings
+    from RegDelta_ops.config import get_settings
     s = get_settings()
     object.__setattr__(s, "ai_job_budget_usd", 0.000001)
     try:
@@ -137,8 +137,8 @@ def test_anthropic_adapter_uses_structured_outputs(monkeypatch):
     import json
     from types import SimpleNamespace
 
-    from tensor_ops.ai import provider as prov
-    from tensor_ops.config import get_settings
+    from RegDelta_ops.ai import provider as prov
+    from RegDelta_ops.config import get_settings
     captured = {}
 
     class FakeMessages:
@@ -158,7 +158,7 @@ def test_anthropic_adapter_uses_structured_outputs(monkeypatch):
 
 
 def test_schemas_use_only_supported_structured_output_features():
-    from tensor_ops.ai.schemas import EVIDENCE_REVIEW_SCHEMA, QUESTIONNAIRE_SCHEMA
+    from RegDelta_ops.ai.schemas import EVIDENCE_REVIEW_SCHEMA, QUESTIONNAIRE_SCHEMA
 
     def walk(n):  # noqa: ANN001
         if isinstance(n, dict):

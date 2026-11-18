@@ -66,7 +66,7 @@ def create_engagement(s: Session, p: Principal, body: EngagementIn) -> Engagemen
     if body.signer_id:
         signer = s.get(User, body.signer_id)
         if not signer or not signer.can_sign or not signer.is_staff or not p.roles.get(body.tenant_id):
-            raise HTTPException(status_code=422, detail="signer must be an authorised Tensor signer")
+            raise HTTPException(status_code=422, detail="signer must be an authorised RegDelta signer")
     start = body.start_date or date.today()
     e = Engagement(tenant_id=body.tenant_id, name=body.name, service_type=body.service_type,
                    frameworks=body.frameworks, scope=body.scope, systems=body.systems, start_date=start,
@@ -166,7 +166,7 @@ def patch_engagement(eid: uuid.UUID, body: EngagementPatch, p: Principal = Depen
     if body.signer_id:
         u = s.get(User, body.signer_id)
         if not u or not u.can_sign or not u.is_staff:
-            raise HTTPException(status_code=422, detail="signer must be an authorised Tensor signer")
+            raise HTTPException(status_code=422, detail="signer must be an authorised RegDelta signer")
         e.signer_id = u.id
     for f in ("target_date", "scope", "contract_value_usd"):
         v = getattr(body, f)
@@ -348,7 +348,7 @@ def trust_ledger(eid: uuid.UUID, p: Principal = Depends(principal), s: Session =
                           "signed_at": x.signed_at.isoformat()} for x in sos],
             "released_reports": [{"id": str(r.id), "kind": r.kind, "sha256": r.sha256,
                                   "released_at": r.released_at.isoformat() if r.released_at else None} for r in reports],
-            "statement": "Tensor prepares and a named expert signs readiness work. An independent audit firm issues the report."}
+            "statement": "RegDelta prepares and a named expert signs readiness work. An independent audit firm issues the report."}
 
 
 @router.get("/engagements/{eid}/remediation")

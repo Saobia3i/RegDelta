@@ -6,9 +6,9 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select, text
 
-from tensor_ops.ai.tasks import review_evidence
-from tensor_ops.db import admin_session, new_session
-from tensor_ops.models import EvidenceItem, Membership
+from RegDelta_ops.ai.tasks import review_evidence
+from RegDelta_ops.db import admin_session, new_session
+from RegDelta_ops.models import EvidenceItem, Membership
 
 from .conftest import MFA_POLICY, drain
 
@@ -122,7 +122,7 @@ def test_unauthenticated_and_bad_tokens(client):
     assert client.get("/v1/engagements").status_code == 401
     assert client.get("/v1/engagements", headers={"authorization": "Bearer nope"}).status_code == 401
     import jwt
-    forged = jwt.encode({"sub": str(uuid.uuid4()), "aud": "tensor-ops", "iss": "tensor-dev",
+    forged = jwt.encode({"sub": str(uuid.uuid4()), "aud": "RegDelta-ops", "iss": "RegDelta-dev",
                          "exp": 9999999999}, "wrong-secret", algorithm="HS256")
     assert client.get("/v1/me", headers={"authorization": f"Bearer {forged}"}).status_code == 401
 

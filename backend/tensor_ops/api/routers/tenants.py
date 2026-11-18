@@ -36,7 +36,7 @@ class TenantIn(BaseModel):
 def create_tenant(s: Session, p: Principal, body: TenantIn) -> Tenant:
     """Delivery staff create client tenants; the creator becomes delivery lead (least privilege: no global access)."""
     if not p.user.is_staff:
-        raise HTTPException(status_code=403, detail="Only Tensor staff can create client organisations")
+        raise HTTPException(status_code=403, detail="Only RegDelta staff can create client organisations")
     t = Tenant(id=uuid.uuid4(), name=body.name, employee_count=body.employee_count, industry=body.industry,
                partner_id=body.partner_id, status=body.status, retention_days=body.retention_days)
     widen_scope(s, t.id)
@@ -111,7 +111,7 @@ def add_member(tenant_id: uuid.UUID, body: MemberIn, p: Principal = Depends(prin
         s.add(u)
         s.flush()
     if body.role in {"delivery_lead", "compliance_specialist", "security_engineer", "quality_reviewer"} and not u.is_staff:
-        raise HTTPException(status_code=422, detail="staff roles require a Tensor staff account")
+        raise HTTPException(status_code=422, detail="staff roles require a RegDelta staff account")
     expires = None
     if body.role == "auditor":
         expires = datetime.now(timezone.utc) + timedelta(days=body.expires_in_days or 30)
@@ -174,7 +174,7 @@ def create_partner(body: PartnerIn, p: Principal = Depends(principal), s: Sessio
 
 @router.get("/staff")
 def staff(p: Principal = Depends(principal), s: Session = Depends(get_db)) -> list[dict]:
-    """Tensor staff directory (for assigning owners/signers). Staff only."""
+    """RegDelta staff directory (for assigning owners/signers). Staff only."""
     if not p.user.is_staff:
         raise HTTPException(status_code=403, detail="Forbidden")
     return [{"id": str(u.id), "name": u.name, "email": u.email, "can_sign": u.can_sign, "expert_title": u.expert_title}

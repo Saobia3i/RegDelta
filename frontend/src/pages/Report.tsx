@@ -47,7 +47,7 @@ export default function ExecutiveReport({ id }: { id: string }) {
         <table><thead><tr><th>Control</th><th>Title</th><th>Status</th><th>Owner</th><th>Risk</th></tr></thead>
           <tbody>{a.controls.filter((c: any) => ["ineffective", "not_implemented", "not_tested", "needs_attention"].includes(c.status)).slice(0, 25).map((c: any) =>
             <tr key={c.id}><td className="mono">{c.code}</td><td className="small">{c.title}</td><td className="small">{c.status.replace(/_/g, " ")}</td><td className="small">{c.owner}</td><td className="small">{c.risk}</td></tr>)}</tbody></table>
-        <p className="faint small">Confidential: for internal governance use. Readiness deliverable prepared by TensorInfoSec; not an audit opinion. An independent audit firm issues the SOC 2 report or ISO certificate.</p>
+        <p className="faint small">Confidential: for internal governance use. Readiness deliverable prepared by RegDeltaInfoSec; not an audit opinion. An independent audit firm issues the SOC 2 report or ISO certificate.</p>
       </div>
     </>
   );

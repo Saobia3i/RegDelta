@@ -17,11 +17,11 @@ export default function Login({ onIn }: { onIn: () => void }) {
   };
   return (
     <div className="login">
-      <h1>RegDelta</h1>
+      <img className="login-logo" src="/regdelta-logo.png" alt="RegDelta" />
       <p className="sub">AI drafts. Named experts decide. Local development sign-in with synthetic users only.</p>
       <Err e={err} />
       {users && <div className="grid g2">
-        <div className="card"><h3>Tensor staff</h3>{users.filter((u) => u.is_staff).map((u) =>
+        <div className="card"><h3>RegDelta team</h3>{users.filter((u) => u.is_staff).map((u) =>
           <button key={u.id} className="btn" onClick={() => pick(u)}><b>{u.name}</b><br /><span className="muted small">{u.email}</span></button>)}</div>
         <div className="card"><h3>Clients, partners, auditors</h3>{users.filter((u) => !u.is_staff).map((u) =>
           <button key={u.id} className="btn" onClick={() => pick(u)}><b>{u.name}</b><br /><span className="muted small">{u.email}</span></button>)}</div>

@@ -1,8 +1,8 @@
-# Review: the AI-suggested engineering pack vs. the TensorInfoSec business plan
+# Review: the AI-suggested engineering pack vs. the RegDeltaInfoSec business plan
 
 **Verdict: the pack is sound on safety but aimed at the wrong business shape.** Its guardrails are
-right for Tensor: experts own conclusions, every AI output cites evidence, tenants are isolated,
-standards text is licensed, and nothing claims certification. Those guardrails are also Tensor's sales story
+right for RegDelta: experts own conclusions, every AI output cites evidence, tenants are isolated,
+standards text is licensed, and nothing claims certification. Those guardrails are also RegDelta's sales story
 after the Delve episode, so they stay. But the pack describes a generic SOC 2 operations tool for a
 well-staffed engineering team. It leaves out the parts of the plan that make money (the free
 Snapshot funnel, questionnaires inside the retainer, white-label partners, the named signer, hours per client)
@@ -12,12 +12,12 @@ This repository implements the corrected scope below.
 
 ## What the pack gets right (kept)
 
-| Pack principle | Why it matters for Tensor's plan |
+| Pack principle | Why it matters for RegDelta's plan |
 |---|---|
 | AI proposes, humans approve; AI never marks a control "compliant" | Matches the plan's "a named expert signs every output" promise |
 | Citations to exact evidence spans, fabricated citations rejected | Matches "evidence comes only from the client's real systems with an audit trail" |
-| Tenant isolation as a security boundary, tested with negative tests | Required for multi-client delivery and for Tensor's own SOC 2 in month 12 |
-| No copyrighted SOC 2 / ISO text in the product | AICPA and ISO texts are licensed; the control library here uses Tensor's own wording and only cites requirement IDs |
+| Tenant isolation as a security boundary, tested with negative tests | Required for multi-client delivery and for RegDelta's own SOC 2 in month 12 |
+| No copyrighted SOC 2 / ISO text in the product | AICPA and ISO texts are licensed; the control library here uses RegDelta's own wording and only cites requirement IDs |
 | Modular monolith, not microservices | Right size for the team |
 | Append-only audit trail, versioned evidence, SHA-256 hashes | Gives an auditor-ready provenance story |
 
@@ -47,7 +47,7 @@ This repository implements the corrected scope below.
    engagement, and contribution margin against the plan's targets (100 h in year 1, 65 h in year 2, $9/h engineers, $75/h experts).
 
 6. **Policy templates are missing.** The plan says "templates for policies, never for conclusions." **Added:** a
-   Tensor-authored policy template library rendered with client parameters. Drafts stay drafts until
+   RegDelta-authored policy template library rendered with client parameters. Drafts stay drafts until
    client and expert approval.
 
 7. **Infrastructure is oversized for the team.** Temporal, a managed OIDC IdP from day one, Terraform with three cloud
@@ -73,8 +73,8 @@ This repository implements the corrected scope below.
   panels. The first five founding clients are the real test. Build only phases 1–2 before they sign.
 - **The 80% automation target vs. the 35% (100 → 65 h) in the model.** Keep the model at 35% until the metrics dashboard
   shows real numbers. The software now measures this directly.
-- **Your own SOC 2 in month 12.** The platform holds client evidence, so enterprise buyers will ask about Tensor's own
-  controls well before month 12. Run Tensor as tenant zero in this system from day one.
+- **Your own SOC 2 in month 12.** The platform holds client evidence, so enterprise buyers will ask about RegDelta's own
+  controls well before month 12. Run RegDelta as tenant zero in this system from day one.
 - **Auditor fee in the "all-in quote."** The quote engine needs your partner auditor's actual price list. The defaults in
   `pricing.py` are placeholders and are labelled as such.
 - **Licensing.** Confirm whether you will license the AICPA TSC and ISO texts for internal reference. The product

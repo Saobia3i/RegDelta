@@ -26,8 +26,8 @@ def _float(name: str, default: float) -> float:
 @dataclass(frozen=True)
 class Settings:
     env: str = "local"  # local | test | staging | production
-    database_url: str = "postgresql+psycopg://tensor_app:devpass@localhost/tensor"
-    admin_database_url: str = "postgresql+psycopg://tensor_owner:devpass@localhost/tensor"
+    database_url: str = "postgresql+psycopg://RegDelta_app:devpass@localhost/RegDelta"
+    admin_database_url: str = "postgresql+psycopg://RegDelta_owner:devpass@localhost/RegDelta"
 
     # Auth
     oidc_issuer: str | None = None
@@ -47,8 +47,12 @@ class Settings:
     extract_memory_mb: int = 512
 
     # AI
-    ai_provider: str = "mock"  # mock | anthropic
+    ai_provider: str = "mock"  # mock | anthropic | openrouter
     anthropic_api_key: str | None = None
+    openrouter_api_key: str | None = None
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_referer: str | None = None
+    openrouter_app_title: str = "RegDelta"
     ai_model: str = "claude-sonnet-5-5"
     ai_timeout_s: int = 120
     ai_max_output_tokens: int = 4000
@@ -77,55 +81,66 @@ class Settings:
         return self.env in ("local", "test")
 
     def validate(self) -> None:
+        if self.ai_provider not in ("mock", "anthropic", "openrouter"):
+            raise ConfigError("RegDelta_AI_PROVIDER must be mock, anthropic, or openrouter")
+        if self.ai_provider == "anthropic" and not self.anthropic_api_key:
+            raise ConfigError("RegDelta_ANTHROPIC_API_KEY is required for the anthropic provider")
+        if self.ai_provider == "openrouter":
+            if not self.openrouter_api_key:
+                raise ConfigError("RegDelta_OPENROUTER_API_KEY is required for the openrouter provider")
+            if not self.ai_model:
+                raise ConfigError("RegDelta_AI_MODEL must be set to an OpenRouter model ID")
         if self.is_local:
             return
         missing = [n for n, v in {
-            "TENSOR_OIDC_ISSUER": self.oidc_issuer,
-            "TENSOR_OIDC_AUDIENCE": self.oidc_audience,
-            "TENSOR_OIDC_JWKS_URL": self.oidc_jwks_url,
-            "TENSOR_SECRETS_KEY": self.secrets_key,
+            "RegDelta_OIDC_ISSUER": self.oidc_issuer,
+            "RegDelta_OIDC_AUDIENCE": self.oidc_audience,
+            "RegDelta_OIDC_JWKS_URL": self.oidc_jwks_url,
+            "RegDelta_SECRETS_KEY": self.secrets_key,
         }.items() if not v]
         if missing:
             raise ConfigError(f"Refusing to start in {self.env}: missing {', '.join(missing)}")
         if self.dev_jwt_secret:
-            raise ConfigError("TENSOR_DEV_JWT_SECRET must not be set outside local")
+            raise ConfigError("RegDelta_DEV_JWT_SECRET must not be set outside local")
         if self.scanner == "dev":
-            raise ConfigError("The dev malware scanner is not allowed outside local; set TENSOR_SCANNER=clamav")
-        if self.ai_provider == "anthropic" and not self.anthropic_api_key:
-            raise ConfigError("TENSOR_ANTHROPIC_API_KEY is required for the anthropic provider")
+            raise ConfigError("The dev malware scanner is not allowed outside local; set RegDelta_SCANNER=clamav")
 
 
 @lru_cache
 def get_settings() -> Settings:
-    env = _env("TENSOR_ENV", "local") or "local"
+    env = _env("RegDelta_ENV", "local") or "local"
     s = Settings(
         env=env,
-        database_url=_env("TENSOR_DATABASE_URL", Settings.database_url),  # type: ignore[arg-type]
-        admin_database_url=_env("TENSOR_ADMIN_DATABASE_URL", Settings.admin_database_url),  # type: ignore[arg-type]
-        oidc_issuer=_env("TENSOR_OIDC_ISSUER"),
-        oidc_audience=_env("TENSOR_OIDC_AUDIENCE"),
-        oidc_jwks_url=_env("TENSOR_OIDC_JWKS_URL"),
-        dev_jwt_secret=_env("TENSOR_DEV_JWT_SECRET", "local-dev-only-secret-change-me-0123456789" if env in ("local", "test") else None),
-        require_mfa_for_privileged=_env("TENSOR_REQUIRE_MFA", "true") == "true",
-        storage_dir=_env("TENSOR_STORAGE_DIR", Settings.storage_dir),  # type: ignore[arg-type]
-        max_upload_bytes=_int("TENSOR_MAX_UPLOAD_BYTES", Settings.max_upload_bytes),
-        scanner=_env("TENSOR_SCANNER", "dev"),  # type: ignore[arg-type]
-        clamd_host=_env("TENSOR_CLAMD_HOST", "localhost"),  # type: ignore[arg-type]
-        clamd_port=_int("TENSOR_CLAMD_PORT", 3310),
-        extract_timeout_s=_int("TENSOR_EXTRACT_TIMEOUT_S", 30),
-        ai_provider=_env("TENSOR_AI_PROVIDER", "mock"),  # type: ignore[arg-type]
-        anthropic_api_key=_env("TENSOR_ANTHROPIC_API_KEY") or _env("ANTHROPIC_API_KEY"),
-        ai_model=_env("TENSOR_AI_MODEL", Settings.ai_model),  # type: ignore[arg-type]
-        ai_job_budget_usd=_float("TENSOR_AI_JOB_BUDGET_USD", 0.50),
-        ai_tenant_daily_budget_usd=_float("TENSOR_AI_TENANT_DAILY_BUDGET_USD", 20.0),
-        ai_price_in_per_mtok=_float("TENSOR_AI_PRICE_IN_PER_MTOK", 3.0),
-        ai_price_out_per_mtok=_float("TENSOR_AI_PRICE_OUT_PER_MTOK", 15.0),
-        secrets_key=_env("TENSOR_SECRETS_KEY"),
-        download_ttl_s=_int("TENSOR_DOWNLOAD_TTL_S", 600),
-        engineer_rate_usd=_float("TENSOR_ENGINEER_RATE_USD", 9.0),
-        expert_rate_usd=_float("TENSOR_EXPERT_RATE_USD", 75.0),
-        cors_origins=[o for o in (_env("TENSOR_CORS_ORIGINS", "") or "").split(",") if o],
-        static_dir=_env("TENSOR_STATIC_DIR"),
+        database_url=_env("RegDelta_DATABASE_URL", Settings.database_url),  # type: ignore[arg-type]
+        admin_database_url=_env("RegDelta_ADMIN_DATABASE_URL", Settings.admin_database_url),  # type: ignore[arg-type]
+        oidc_issuer=_env("RegDelta_OIDC_ISSUER"),
+        oidc_audience=_env("RegDelta_OIDC_AUDIENCE"),
+        oidc_jwks_url=_env("RegDelta_OIDC_JWKS_URL"),
+        dev_jwt_secret=_env("RegDelta_DEV_JWT_SECRET", "local-dev-only-secret-change-me-0123456789" if env in ("local", "test") else None),
+        require_mfa_for_privileged=_env("RegDelta_REQUIRE_MFA", "true") == "true",
+        storage_dir=_env("RegDelta_STORAGE_DIR", Settings.storage_dir),  # type: ignore[arg-type]
+        max_upload_bytes=_int("RegDelta_MAX_UPLOAD_BYTES", Settings.max_upload_bytes),
+        scanner=_env("RegDelta_SCANNER", "dev"),  # type: ignore[arg-type]
+        clamd_host=_env("RegDelta_CLAMD_HOST", "localhost"),  # type: ignore[arg-type]
+        clamd_port=_int("RegDelta_CLAMD_PORT", 3310),
+        extract_timeout_s=_int("RegDelta_EXTRACT_TIMEOUT_S", 30),
+        ai_provider=_env("RegDelta_AI_PROVIDER", "mock"),  # type: ignore[arg-type]
+        anthropic_api_key=_env("RegDelta_ANTHROPIC_API_KEY") or _env("ANTHROPIC_API_KEY"),
+        openrouter_api_key=_env("RegDelta_OPENROUTER_API_KEY") or _env("RegDelta_OPENROUTER_API") or _env("OPENROUTER_API_KEY"),
+        openrouter_base_url=_env("RegDelta_OPENROUTER_BASE_URL", Settings.openrouter_base_url),  # type: ignore[arg-type]
+        openrouter_referer=_env("RegDelta_OPENROUTER_REFERER"),
+        openrouter_app_title=_env("RegDelta_OPENROUTER_APP_TITLE", "RegDelta"),  # type: ignore[arg-type]
+        ai_model=_env("RegDelta_AI_MODEL", "" if _env("RegDelta_AI_PROVIDER", "mock") == "openrouter" else Settings.ai_model),  # type: ignore[arg-type]
+        ai_job_budget_usd=_float("RegDelta_AI_JOB_BUDGET_USD", 0.50),
+        ai_tenant_daily_budget_usd=_float("RegDelta_AI_TENANT_DAILY_BUDGET_USD", 20.0),
+        ai_price_in_per_mtok=_float("RegDelta_AI_PRICE_IN_PER_MTOK", 3.0),
+        ai_price_out_per_mtok=_float("RegDelta_AI_PRICE_OUT_PER_MTOK", 15.0),
+        secrets_key=_env("RegDelta_SECRETS_KEY"),
+        download_ttl_s=_int("RegDelta_DOWNLOAD_TTL_S", 600),
+        engineer_rate_usd=_float("RegDelta_ENGINEER_RATE_USD", 9.0),
+        expert_rate_usd=_float("RegDelta_EXPERT_RATE_USD", 75.0),
+        cors_origins=[o for o in (_env("RegDelta_CORS_ORIGINS", "") or "").split(",") if o],
+        static_dir=_env("RegDelta_STATIC_DIR"),
     )
     s.validate()
     return s

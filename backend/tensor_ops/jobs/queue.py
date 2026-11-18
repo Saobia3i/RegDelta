@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from ..db import admin_session, new_session
 from ..models import Job
 
-log = logging.getLogger("tensor.jobs")
+log = logging.getLogger("RegDelta.jobs")
 Handler = Callable[[Session, Job], dict[str, Any] | None]
 HANDLERS: dict[str, Handler] = {}
 WORKER_ID = f"{socket.gethostname()}:{uuid.uuid4().hex[:6]}"

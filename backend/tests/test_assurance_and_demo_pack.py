@@ -68,7 +68,7 @@ def test_iso_gap_assessment_import_dry_run_then_apply(api):
                  files={"file": (f.name, f.read_bytes())})
     assert out["applied"] and out["remediation_tasks_created"] >= 3
     after = {c["code"]: c["status"] for c in api.ok("lead", "GET", f"/v1/engagements/{eng['id']}/controls")}
-    assert before == after  # a self-assessment never changes Tensor's evidence-based status
+    assert before == after  # a self-assessment never changes RegDelta's evidence-based status
     a = api.ok("lead", "GET", f"/v1/engagements/{eng['id']}/analytics")
     ctl = {c["code"]: c for c in a["controls"]}
     assert ctl["TC-AC-02"]["self_assessment"] == "partially"  # duplicate rows: weakest answer kept

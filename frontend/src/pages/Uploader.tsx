@@ -95,7 +95,7 @@ export default function Uploader({ engagementId, onChange, requestId }: { engage
             <td><Pill s={it.status === "error" ? "error" : it.status} /></td>
             <td className="small">{out ? <><Pill s={out.decision} />{out.candidate_controls?.length ? <span className="faint"> {out.candidate_controls.map((c: any) => c.control_code).slice(0, 3).join(", ")}</span> : null}
               {it.detail?.artifacts?.[0]?.warnings?.length ? <><br /><span style={{ color: "var(--warn)" }}>⚠ {it.detail.artifacts[0].warnings[0]}</span></> : null}</>
-              : it.detail && it.detail.can_review === false && FINAL.has(it.status) ? <span className="faint">sent to Tensor experts</span> : <span className="faint">—</span>}</td>
+              : it.detail && it.detail.can_review === false && FINAL.has(it.status) ? <span className="faint">sent to RegDelta experts</span> : <span className="faint">—</span>}</td>
           </tr>;
         })}</tbody>
       </table>}

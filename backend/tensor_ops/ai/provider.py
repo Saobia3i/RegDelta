@@ -24,8 +24,11 @@ class AIResult:
     output_tokens: int = 0
     latency_ms: int = 0
     raw_text: str = ""
+    reported_cost_usd: float | None = None
 
     def cost(self, s: Settings) -> float:
+        if self.reported_cost_usd is not None:
+            return round(self.reported_cost_usd, 6)
         return round(self.input_tokens / 1e6 * s.ai_price_in_per_mtok + self.output_tokens / 1e6 * s.ai_price_out_per_mtok, 6)
 
 
@@ -79,6 +82,73 @@ class AnthropicProvider:
         return AIResult(data=data, provider=self.name, model=resp.model, request_id=resp.id,
                         input_tokens=resp.usage.input_tokens, output_tokens=resp.usage.output_tokens,
                         latency_ms=latency, raw_text=text)
+
+
+class OpenRouterProvider:
+    """OpenRouter chat completions with strict JSON-schema output."""
+    name = "openrouter"
+
+    def __init__(self, s: Settings) -> None:
+        import httpx
+        self.model = s.ai_model
+        self._httpx = httpx
+        self._url = s.openrouter_base_url.rstrip("/") + "/chat/completions"
+        headers = {"Authorization": f"Bearer {s.openrouter_api_key}", "Content-Type": "application/json",
+                   "X-Title": s.openrouter_app_title}
+        if s.openrouter_referer:
+            headers["HTTP-Referer"] = s.openrouter_referer
+        self._headers = headers
+        self._timeout = s.ai_timeout_s
+
+    def generate_structured(self, req: Request) -> AIResult:
+        t0 = time.monotonic()
+        safe_task = re.sub(r"[^a-zA-Z0-9_-]", "_", req.task_type)[:64] or "structured_response"
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "system", "content": req.system}, {"role": "user", "content": req.user}],
+            "max_tokens": req.max_output_tokens,
+            "response_format": {"type": "json_schema", "json_schema": {
+                "name": safe_task, "strict": True, "schema": req.schema}},
+            "provider": {"require_parameters": True},
+        }
+        try:
+            response = self._httpx.post(self._url, headers=self._headers, json=payload, timeout=self._timeout)
+            response.raise_for_status()
+            body = response.json()
+        except self._httpx.TimeoutException as e:
+            raise ProviderError("OpenRouter request timed out") from e
+        except self._httpx.HTTPStatusError as e:
+            code = e.response.status_code
+            raise ProviderError(f"OpenRouter request failed (HTTP {code}); check key, model, and structured-output support") from e
+        except (self._httpx.HTTPError, ValueError) as e:
+            raise ProviderError("OpenRouter returned an invalid response") from e
+
+        choices = body.get("choices") or []
+        if not choices or not isinstance(choices[0], dict):
+            raise ProviderError("OpenRouter response contained no completion")
+        choice = choices[0]
+        reason = choice.get("finish_reason")
+        if reason in ("length", "content_filter"):
+            raise ProviderError(f"OpenRouter completion stopped: {reason}")
+        message = choice.get("message") or {}
+        if message.get("refusal"):
+            raise ProviderError("OpenRouter model refused the request")
+        content = message.get("content")
+        if isinstance(content, list):
+            content = "".join(part.get("text", "") for part in content if isinstance(part, dict))
+        if not isinstance(content, str) or not content:
+            raise ProviderError("OpenRouter returned empty structured output")
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError as e:
+            raise ProviderError("OpenRouter returned non-JSON output") from e
+        usage = body.get("usage") or {}
+        reported_cost = usage.get("cost")
+        return AIResult(data=data, provider=self.name, model=body.get("model") or self.model,
+                        request_id=body.get("id"), input_tokens=int(usage.get("prompt_tokens", 0) or 0),
+                        output_tokens=int(usage.get("completion_tokens", 0) or 0),
+                        latency_ms=int((time.monotonic() - t0) * 1000), raw_text=content,
+                        reported_cost_usd=float(reported_cost) if reported_cost is not None else None)
 
 
 _INJECTION = re.compile(r"(ignore (all |any )?(previous|prior|above) instructions|disregard .{0,30}instructions|"
@@ -189,4 +259,6 @@ def get_provider() -> Provider:
     s = get_settings()
     if s.ai_provider == "anthropic":
         return AnthropicProvider(s)
+    if s.ai_provider == "openrouter":
+        return OpenRouterProvider(s)
     return MockProvider()

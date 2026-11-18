@@ -9,12 +9,12 @@ import httpx
 import pytest
 from sqlalchemy import select, text
 
-from tensor_ops.config import ConfigError, Settings
-from tensor_ops.connectors.github import GitHubConnector
-from tensor_ops.connectors.service import set_factory_override
-from tensor_ops.db import admin_session
-from tensor_ops.ingestion.storage import evidence_key, get_store
-from tensor_ops.models import Connector, EvidenceChunk, Job
+from RegDelta_ops.config import ConfigError, Settings
+from RegDelta_ops.connectors.github import GitHubConnector
+from RegDelta_ops.connectors.service import set_factory_override
+from RegDelta_ops.db import admin_session
+from RegDelta_ops.ingestion.storage import evidence_key, get_store
+from RegDelta_ops.models import Connector, EvidenceChunk, Job
 
 from .conftest import MFA_POLICY, drain
 
@@ -110,7 +110,7 @@ def test_rate_limit_is_retried_with_backoff(api):
     api.ok("lead", "POST", f"/v1/connectors/{c['id']}/authorize", json={"token": TOKEN})
     state["rate_limited"] = True
     job = api.ok("lead", "POST", f"/v1/connectors/{c['id']}/sync")["job_id"]
-    from tensor_ops.jobs.queue import claim, run_job
+    from RegDelta_ops.jobs.queue import claim, run_job
     assert run_job(claim(["connector_sync"])) == "queued"
     state["rate_limited"] = False
     drain()
@@ -143,7 +143,7 @@ def test_client_can_revoke_and_secret_is_destroyed(api):
 def test_connector_rejects_bad_org_and_foreign_links():
     with pytest.raises(ValueError):
         GitHubConnector("../evil", TOKEN)
-    from tensor_ops.connectors.base import ConnectorScopeError
+    from RegDelta_ops.connectors.base import ConnectorScopeError
     gh = GitHubConnector("acme-co", TOKEN, transport=gh_transport({}))
     with pytest.raises(ConnectorScopeError):
         gh._get("https://evil.example/steal")
@@ -183,12 +183,12 @@ def test_tenant_purge_removes_all_rows_but_keeps_audit_trail(api):
     eng = api.ok("lead", "POST", "/v1/engagements", json={"tenant_id": tid, "name": "temp", "frameworks": ["SOC2"]})
     api.upload("lead", eng["id"], "t.txt", (uuid.uuid4().hex + MFA_POLICY).encode())
     d = api.ok("lead", "POST", "/v1/deletion-requests", json={"tenant_id": tid, "scope": "tenant", "target_id": tid})
-    from tensor_ops.models import DeletionRequest
+    from RegDelta_ops.models import DeletionRequest
     with admin_session() as s:  # second person approves (expert is not a member; simulate platform approval)
         s.get(DeletionRequest, uuid.UUID(d["id"])).status = "approved"
         s.get(DeletionRequest, uuid.UUID(d["id"])).approved_by = api.ids["owner"]
         s.commit()
-    from tensor_ops.services.retention import execute_deletion
+    from RegDelta_ops.services.retention import execute_deletion
     res = execute_deletion(uuid.UUID(d["id"]))
     assert res["verified"] is True
     with admin_session() as s:
@@ -201,7 +201,7 @@ def test_tenant_purge_removes_all_rows_but_keeps_audit_trail(api):
 def test_retention_sweep_expires_and_purges(api):
     from datetime import date, timedelta
 
-    from tensor_ops.services.retention import sweep
+    from RegDelta_ops.services.retention import sweep
     eng = api.engagement("acme")
     ev = api.upload("client_a", eng["id"], "old.txt", (uuid.uuid4().hex + MFA_POLICY).encode())
     with admin_session() as s:
@@ -228,7 +228,7 @@ def test_config_fails_closed_outside_local():
 
 
 def test_dev_login_unavailable_outside_local(api, monkeypatch):
-    from tensor_ops.api.routers import dev
+    from RegDelta_ops.api.routers import dev
     with pytest.raises(Exception) as e:
         dev._local_only(Settings(env="production"))
     assert getattr(e.value, "status_code", None) == 404

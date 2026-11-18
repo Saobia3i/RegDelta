@@ -1,9 +1,9 @@
-"""Alembic env: migrations always run with the owner role (TENSOR_ADMIN_DATABASE_URL)."""
+"""Alembic env: migrations always run with the owner role (RegDelta_ADMIN_DATABASE_URL)."""
 from alembic import context
 from sqlalchemy import create_engine
 
-from tensor_ops.config import get_settings
-from tensor_ops.models import Base
+from RegDelta_ops.config import get_settings
+from RegDelta_ops.models import Base
 
 target_metadata = Base.metadata
 

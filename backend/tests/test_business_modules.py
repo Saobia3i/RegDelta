@@ -15,15 +15,15 @@ def snapshot(api, **over):  # type: ignore[no-untyped-def]
 
 
 def test_pricing_follows_the_business_plan():
-    from tensor_ops.services.pricing import quote
-    assert quote(30, ["SOC2"])["tensor_total_year1"] == 7500
-    assert quote(51, ["SOC2"])["tensor_total_year1"] == 10500
-    assert quote(150, ["SOC2"])["tensor_total_year1"] == 10500
+    from RegDelta_ops.services.pricing import quote
+    assert quote(30, ["SOC2"])["RegDelta_total_year1"] == 7500
+    assert quote(51, ["SOC2"])["RegDelta_total_year1"] == 10500
+    assert quote(150, ["SOC2"])["RegDelta_total_year1"] == 10500
     assert quote(151, ["SOC2"])["custom_quote_required"] is True
-    assert quote(30, ["SOC2"], founding=True)["tensor_total_year1"] == 5000
-    assert quote(30, ["SOC2", "ISO27001"])["tensor_total_year1"] == 11500
-    assert quote(30, ["SOC2", "ISO42001"], pentest=True)["tensor_total_year1"] == 17500
-    assert quote(30, ["SOC2"], partner_price=4500)["tensor_total_year1"] == 4500
+    assert quote(30, ["SOC2"], founding=True)["RegDelta_total_year1"] == 5000
+    assert quote(30, ["SOC2", "ISO27001"])["RegDelta_total_year1"] == 11500
+    assert quote(30, ["SOC2", "ISO42001"], pentest=True)["RegDelta_total_year1"] == 17500
+    assert quote(30, ["SOC2"], partner_price=4500)["RegDelta_total_year1"] == 4500
     q = quote(30, ["SOC2"])
     assert q["all_in_total_year1"] is None and "to be confirmed" in q["auditor_fee_status"]  # never invent auditor fees
 
@@ -31,7 +31,7 @@ def test_pricing_follows_the_business_plan():
 def test_snapshot_draft_sign_send_convert(api):
     sn = snapshot(api, founding_client=True)
     r = sn["result"]
-    assert r["quote"]["tensor_total_year1"] == 5000 and r["signer"]["name"].startswith("Nadia")
+    assert r["quote"]["RegDelta_total_year1"] == 5000 and r["signer"]["name"].startswith("Nadia")
     assert 0 <= r["readiness_percent"] <= 100 and r["gaps"] and len(r["plan"]) == 8
     assert r["plan"][0]["starts"] < r["audit_ready_target"]
     assert sn["due_at"]  # 3-business-day SLA
@@ -66,7 +66,7 @@ def test_snapshot_validation_and_white_label_price(api):
                                                       "signer_id": str(api.ids["engineer"])}).status_code == 422
     partners = api.ok("lead", "GET", "/v1/partners")
     sn = snapshot(api, partner_id=partners[0]["id"])
-    assert sn["result"]["quote"]["tensor_total_year1"] == 4500
+    assert sn["result"]["quote"]["RegDelta_total_year1"] == 4500
     assert "Northwind" in api("lead", "GET", f"/v1/snapshots/{sn['id']}/document").text
     assert api("client_a", "POST", "/v1/snapshots", json={}).status_code in (403, 422)
 

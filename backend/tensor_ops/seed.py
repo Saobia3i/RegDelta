@@ -1,6 +1,6 @@
 """Load reference data (frameworks, controls, mappings) and optional synthetic demo data.
 
-Run with the owner role: `python -m tensor_ops.seed [--demo]`. Demo data is synthetic only.
+Run with the owner role: `python -m RegDelta_ops.seed [--demo]`. Demo data is synthetic only.
 """
 from __future__ import annotations
 
@@ -61,25 +61,25 @@ def load_reference(s: Session) -> None:
                 req = req_by_key[(fw_code, ref)]
                 if req.id not in have:
                     s.add(ControlMapping(control_id=ctl.id, requirement_id=req.id,
-                                         rationale=f"Tensor draft mapping of {c['code']} to {fw_code} {ref}"))
+                                         rationale=f"RegDelta draft mapping of {c['code']} to {fw_code} {ref}"))
 
 
 def load_demo(s: Session) -> dict[str, uuid.UUID]:
     """Synthetic users and tenants for local development. Never real customer data."""
-    if s.execute(select(User).where(User.email == "lead@tensor.example")).scalar_one_or_none():
+    if s.execute(select(User).where(User.email == "lead@RegDelta.example")).scalar_one_or_none():
         return {}
     partner = Partner(name="Northwind vCISO LLC (synthetic)", brand_name="Northwind Security", brand_color="#0f4c81",
                       contact_email="ops@northwind.example")
     s.add(partner)
     s.flush()
     users = {
-        "owner": User(email="owner@tensor.example", name="Platform Owner", is_staff=True, is_platform_owner=True),
-        "lead": User(email="lead@tensor.example", name="Abrar J. (Delivery Lead)", is_staff=True, can_sign=True,
+        "owner": User(email="owner@RegDelta.example", name="Platform Owner", is_staff=True, is_platform_owner=True),
+        "lead": User(email="lead@RegDelta.example", name="Abrar J. (Delivery Lead)", is_staff=True, can_sign=True,
                      expert_title="Founder & Lead Compliance Expert"),
-        "expert": User(email="expert@tensor.example", name="Nadia R. (Compliance Specialist)", is_staff=True,
+        "expert": User(email="expert@RegDelta.example", name="Nadia R. (Compliance Specialist)", is_staff=True,
                        can_sign=True, expert_title="CISA, Senior Compliance Specialist"),
-        "engineer": User(email="engineer@tensor.example", name="Rafi H. (Security Engineer)", is_staff=True),
-        "qa": User(email="qa@tensor.example", name="Quality Reviewer", is_staff=True, can_sign=True,
+        "engineer": User(email="engineer@RegDelta.example", name="Rafi H. (Security Engineer)", is_staff=True),
+        "qa": User(email="qa@RegDelta.example", name="Quality Reviewer", is_staff=True, can_sign=True,
                    expert_title="Quality Reviewer"),
         "client_a": User(email="cto@acme.example", name="Acme CTO (client admin)"),
         "client_b": User(email="ceo@globex.example", name="Globex CEO (client admin)"),
@@ -90,10 +90,10 @@ def load_demo(s: Session) -> dict[str, uuid.UUID]:
     s.flush()
     acme = Tenant(name="Acme Analytics (synthetic)", employee_count=42, industry="B2B SaaS")
     globex = Tenant(name="Globex Payments (synthetic)", employee_count=95, industry="Fintech", partner_id=partner.id)
-    tensor = Tenant(name="TensorInfoSec (tenant zero)", employee_count=8, industry="Security services", is_internal=True)
-    s.add_all([acme, globex, tensor])
+    RegDelta = Tenant(name="RegDeltaInfoSec (tenant zero)", employee_count=8, industry="Security services", is_internal=True)
+    s.add_all([acme, globex, RegDelta])
     s.flush()
-    for t in (acme, globex, tensor):
+    for t in (acme, globex, RegDelta):
         for key, role in [("lead", "delivery_lead"), ("expert", "compliance_specialist"),
                           ("engineer", "security_engineer"), ("qa", "quality_reviewer")]:
             s.add(Membership(user_id=users[key].id, tenant_id=t.id, role=role))
@@ -103,7 +103,7 @@ def load_demo(s: Session) -> dict[str, uuid.UUID]:
     from datetime import datetime, timezone
     s.add(Membership(user_id=users["auditor"].id, tenant_id=acme.id, role="auditor",
                      expires_at=datetime.now(timezone.utc) + timedelta(days=60)))
-    return {k: u.id for k, u in users.items()} | {"acme": acme.id, "globex": globex.id, "tensor": tensor.id}
+    return {k: u.id for k, u in users.items()} | {"acme": acme.id, "globex": globex.id, "RegDelta": RegDelta.id}
 
 
 def main(argv: list[str]) -> None:

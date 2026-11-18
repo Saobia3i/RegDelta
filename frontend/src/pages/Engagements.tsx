@@ -13,7 +13,7 @@ export default function Engagements() {
     <>
       <div className="spread">
         <div><h1>{me.is_staff ? "Engagements" : "Your compliance program"}</h1>
-          <p className="sub">{me.is_staff ? "Every client engagement you are assigned to." : "Delivered by TensorInfoSec experts."}</p></div>
+          <p className="sub">{me.is_staff ? "Every client engagement you are assigned to." : "Delivered by RegDelta experts."}</p></div>
         {me.is_staff && <button className="btn primary" onClick={() => setShow(!show)}>New engagement</button>}
       </div>
       {show && <NewEngagement tenants={(tenants.data || []).filter((t) => t.my_role === "delivery_lead")} onDone={() => { setShow(false); engs.reload(); tenants.reload(); }} />}

@@ -13,8 +13,8 @@
 - Data: restore with PITR to a new instance, run `deploy/restore_check.py` against it, then switch over.
 
 ## Restore drill (quarterly)
-`python deploy/restore_check.py --pg-host <host> --source tensor --storage <mounted evidence store>`. Record the output in
-tenant zero as evidence for Tensor's own TC-BC-01.
+`python deploy/restore_check.py --pg-host <host> --source RegDelta --storage <mounted evidence store>`. Record the output in
+tenant zero as evidence for RegDelta's own TC-BC-01.
 
 ## Incident: suspected cross-tenant exposure
 1. Contain: revoke the affected sessions and memberships, and disable the endpoint behind a feature flag or route block.
@@ -32,7 +32,7 @@ The item stays `rejected_security` in quarantine (it is not parsed). Notify the 
 then delete it through the deletion workflow.
 
 ## Incident: model provider outage or misbehaviour
-Set `TENSOR_AI_PROVIDER=mock` (or pause the AI worker pool). Evidence still flows to `expert_review` for manual mapping.
+Set `RegDelta_AI_PROVIDER=mock` (or pause the AI worker pool). Evidence still flows to `expert_review` for manual mapping.
 If outputs degrade, run `python -m evals.run_evals` against the provider and compare with the last report.
 
 ## Data deletion request

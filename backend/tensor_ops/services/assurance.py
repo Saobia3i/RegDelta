@@ -1,7 +1,7 @@
 """Type II assurance: control tests -> exceptions, milestones, and spreadsheet imports (gap assessments, test logs).
 
 Imports never change a control's workflow status or approve anything: a client self-assessment is recorded as
-`self_assessment` next to Tensor's evidence-based status, and applicability stays an expert decision.
+`self_assessment` next to RegDelta's evidence-based status, and applicability stays an expert decision.
 """
 from __future__ import annotations
 

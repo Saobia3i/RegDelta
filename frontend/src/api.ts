@@ -1,10 +1,10 @@
 // Thin API client. The token lives in memory with a sessionStorage convenience copy (local dev only).
 let token: string | null = null;
-try { token = sessionStorage.getItem("tensor_token"); } catch { token = null; }
+try { token = sessionStorage.getItem("RegDelta_token"); } catch { token = null; }
 
 export function setToken(t: string | null) {
   token = t;
-  try { t ? sessionStorage.setItem("tensor_token", t) : sessionStorage.removeItem("tensor_token"); } catch { /* ignore */ }
+  try { t ? sessionStorage.setItem("RegDelta_token", t) : sessionStorage.removeItem("RegDelta_token"); } catch { /* ignore */ }
 }
 export const hasToken = () => !!token;
 
@@ -63,9 +63,9 @@ export async function fetchHtml(path: string): Promise<string> {
 export const authHeader = (): Record<string, string> => (token ? { authorization: `Bearer ${token}` } : {});
 
 export function getTheme(): "dark" | "light" | null {
-  try { return (localStorage.getItem("tensor_theme") as "dark" | "light" | null) || null; } catch { return null; }
+  try { return (localStorage.getItem("RegDelta_theme") as "dark" | "light" | null) || null; } catch { return null; }
 }
 export function setTheme(t: "dark" | "light") {
   document.documentElement.dataset.theme = t;
-  try { localStorage.setItem("tensor_theme", t); } catch { /* ignore */ }
+  try { localStorage.setItem("RegDelta_theme", t); } catch { /* ignore */ }
 }

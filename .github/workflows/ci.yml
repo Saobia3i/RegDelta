@@ -12,13 +12,13 @@ jobs:
     services:
       postgres:
         image: postgres:16
-        env: { POSTGRES_USER: tensor_owner, POSTGRES_PASSWORD: devpass, POSTGRES_DB: tensor_test }
+        env: { POSTGRES_USER: RegDelta_owner, POSTGRES_PASSWORD: devpass, POSTGRES_DB: RegDelta_test }
         ports: ["5432:5432"]
-        options: --health-cmd "pg_isready -U tensor_owner" --health-interval 5s --health-retries 10
+        options: --health-cmd "pg_isready -U RegDelta_owner" --health-interval 5s --health-retries 10
     env:
-      TENSOR_ENV: test
-      TENSOR_DATABASE_URL: postgresql+psycopg://tensor_app:devpass@localhost/tensor_test
-      TENSOR_ADMIN_DATABASE_URL: postgresql+psycopg://tensor_owner:devpass@localhost/tensor_test
+      RegDelta_ENV: test
+      RegDelta_DATABASE_URL: postgresql+psycopg://RegDelta_app:devpass@localhost/RegDelta_test
+      RegDelta_ADMIN_DATABASE_URL: postgresql+psycopg://RegDelta_owner:devpass@localhost/RegDelta_test
     defaults: { run: { working-directory: backend } }
     steps:
       - uses: actions/checkout@v4
@@ -26,11 +26,11 @@ jobs:
         with: { python-version: "3.13" }
       - run: pip install -r requirements-dev.txt
       - name: Create non-owner app role (RLS applies to it)
-        run: PGPASSWORD=devpass psql -h localhost -U tensor_owner -d tensor_test -c "CREATE ROLE tensor_app LOGIN PASSWORD 'devpass'"
+        run: PGPASSWORD=devpass psql -h localhost -U RegDelta_owner -d RegDelta_test -c "CREATE ROLE RegDelta_app LOGIN PASSWORD 'devpass'"
       - name: Lint
         run: ruff check .
       - name: SAST (bandit)
-        run: bandit -q -r tensor_ops -c pyproject.toml -ll
+        run: bandit -q -r RegDelta_ops -c pyproject.toml -ll
       - name: Dependency audit
         run: pip-audit -r requirements.lock
       - name: Migrations apply cleanly
@@ -66,6 +66,6 @@ jobs:
     needs: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t tensor-ops:${{ github.sha }} .
+      - run: docker build -t RegDelta-ops:${{ github.sha }} .
       - uses: aquasecurity/trivy-action@0.28.0
-        with: { image-ref: "tensor-ops:${{ github.sha }}", severity: "CRITICAL,HIGH", exit-code: "1", ignore-unfixed: true }
+        with: { image-ref: "RegDelta-ops:${{ github.sha }}", severity: "CRITICAL,HIGH", exit-code: "1", ignore-unfixed: true }

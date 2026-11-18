@@ -1,24 +1,24 @@
-"""Tensor-authored control library and framework reference index.
+"""RegDelta-authored control library and framework reference index.
 
 LICENSING: no AICPA Trust Services Criteria text and no ISO/IEC or PCI SSC normative text is included. Each
-framework requirement is stored as its public identifier plus a short Tensor paraphrase of the topic. Mappings
-are advisory drafts until a qualified Tensor expert validates them (control_mappings.status).
+framework requirement is stored as its public identifier plus a short RegDelta paraphrase of the topic. Mappings
+are advisory drafts until a qualified RegDelta expert validates them (control_mappings.status).
 """
 from __future__ import annotations
 
 FRAMEWORKS = [
     {"code": "SOC2", "name": "SOC 2 (AICPA Trust Services Criteria)", "version": "TSC 2017, rev. points of focus 2022",
      "source_url": "https://www.aicpa-cima.com/resources/landing/system-and-organization-controls-soc-suite-of-services",
-     "license_note": "Criteria text is AICPA copyright. Only identifiers and Tensor paraphrases are stored."},
+     "license_note": "Criteria text is AICPA copyright. Only identifiers and RegDelta paraphrases are stored."},
     {"code": "ISO27001", "name": "ISO/IEC 27001", "version": "2022",
      "source_url": "https://www.iso.org/standard/27001",
-     "license_note": "ISO copyright. Only clause/control identifiers and Tensor paraphrases are stored. Buy the standard for normative text."},
+     "license_note": "ISO copyright. Only clause/control identifiers and RegDelta paraphrases are stored. Buy the standard for normative text."},
     {"code": "ISO42001", "name": "ISO/IEC 42001 (AI management system)", "version": "2023",
      "source_url": "https://www.iso.org/standard/81230.html",
-     "license_note": "ISO copyright. Only identifiers and Tensor paraphrases are stored."},
+     "license_note": "ISO copyright. Only identifiers and RegDelta paraphrases are stored."},
     {"code": "PCIDSS", "name": "PCI DSS", "version": "4.0.1",
      "source_url": "https://www.pcisecuritystandards.org/document_library/",
-     "license_note": "PCI SSC copyright; free to read under PCI SSC licence. Only identifiers and Tensor paraphrases are stored."},
+     "license_note": "PCI SSC copyright; free to read under PCI SSC licence. Only identifiers and RegDelta paraphrases are stored."},
 ]
 
 REQUIREMENTS: dict[str, dict[str, str]] = {
@@ -85,7 +85,7 @@ REQUIREMENTS: dict[str, dict[str, str]] = {
 CONTROLS: list[dict] = [
     dict(code="TC-GOV-01", domain="Governance", title="Information security policy is approved and published",
          objective="Leadership approves a security policy set, staff can find it, and it is reviewed yearly.",
-         guidance="Generate from Tensor templates, have the CEO/CTO approve, publish to the wiki, record acknowledgements.",
+         guidance="Generate from RegDelta templates, have the CEO/CTO approve, publish to the wiki, record acknowledgements.",
          evidence=["Signed information security policy", "Policy acknowledgement report"],
          keywords=["information security policy", "approved", "policy", "acknowledg"], hours=3, q="has_security_policy",
          map={"SOC2": ["CC5.3", "CC2.2"], "ISO27001": ["A.5.1"], "PCIDSS": ["12.1"]}),
@@ -109,7 +109,7 @@ CONTROLS: list[dict] = [
          map={"SOC2": ["CC1.4"], "ISO27001": ["A.6.1"], "PCIDSS": ["12.7"]}),
     dict(code="TC-HR-02", domain="People", title="Staff complete security awareness training",
          objective="All staff complete training at onboarding and yearly; completion is tracked.",
-         guidance="Deliver via the Tensor academy module; export completion records.",
+         guidance="Deliver via the RegDelta academy module; export completion records.",
          evidence=["Training completion report", "Training content outline", "Phishing simulation results"],
          keywords=["training", "awareness", "phishing", "completion"], hours=2, q="security_training",
          map={"SOC2": ["CC1.4", "CC2.2"], "ISO27001": ["A.6.3"], "PCIDSS": ["12.6"]}),
@@ -271,7 +271,7 @@ CONTROLS: list[dict] = [
          map={"ISO42001": ["A.2.2", "A.3.2"]}),
     dict(code="TC-AI-02", domain="AI governance", title="AI system impact is assessed",
          objective="Impacts of AI systems on individuals and groups are assessed before release and on change.",
-         guidance="Use the Tensor impact assessment template; client owns the conclusions.",
+         guidance="Use the RegDelta impact assessment template; client owns the conclusions.",
          evidence=["AI impact assessment"],
          keywords=["impact assessment", "bias", "fairness", "harm"], hours=3, q="ai_impact_assessment",
          map={"ISO42001": ["A.5.2", "A.5.4"]}),

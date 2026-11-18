@@ -37,7 +37,7 @@ def executive_summary(eid: uuid.UUID, p: Principal = Depends(principal), s: Sess
     return {"engagement": e.name, "frameworks": e.frameworks, "target_date": e.target_date.isoformat() if e.target_date else None,
             "signer": {"name": signer.name, "title": signer.expert_title} if signer else None,
             "findings": gap_summary(a), "analytics": a,
-            "basis": "Rule-based from Tensor records (approved evidence, tests, exceptions). Not an audit opinion."}
+            "basis": "Rule-based from RegDelta records (approved evidence, tests, exceptions). Not an audit opinion."}
 
 
 @router.get("/metrics/readiness")
@@ -208,7 +208,7 @@ async def import_sheet(eid: uuid.UUID, kind: str = Query(pattern="^(assessment|t
     e = get_scoped(s, p, Engagement, eid, "engagement.read")
     p.require(e.tenant_id, "evidence.upload" if kind == "assessment" else "control.assess")
     if create_tasks and apply and kind == "assessment" and not p.can(e.tenant_id, "remediation.manage"):
-        create_tasks = False  # clients record their self-assessment; Tensor staff decide on remediation
+        create_tasks = False  # clients record their self-assessment; RegDelta staff decide on remediation
     data = await file.read(10 * 1024 * 1024 + 1)
     if len(data) > 10 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="spreadsheet larger than 10 MB")

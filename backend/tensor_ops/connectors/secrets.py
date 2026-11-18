@@ -19,8 +19,8 @@ def _fernet() -> Fernet:
     key = s.secrets_key
     if not key:
         if not s.is_local:
-            raise RuntimeError("TENSOR_SECRETS_KEY required")
-        key = base64.urlsafe_b64encode(hashlib.sha256(b"tensor-local-dev-only").digest()).decode()
+            raise RuntimeError("RegDelta_SECRETS_KEY required")
+        key = base64.urlsafe_b64encode(hashlib.sha256(b"RegDelta-local-dev-only").digest()).decode()
     return Fernet(key.encode() if isinstance(key, str) else key)
 
 

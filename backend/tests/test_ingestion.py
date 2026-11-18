@@ -9,8 +9,8 @@ import zipfile
 
 import pytest
 
-from tensor_ops.ingestion.scanner import EICAR
-from tensor_ops.ingestion.storage import get_store
+from RegDelta_ops.ingestion.scanner import EICAR
+from RegDelta_ops.ingestion.storage import get_store
 
 from .conftest import ACCESS_REVIEW, MFA_POLICY, drain, make_docx, make_pdf
 
@@ -77,8 +77,8 @@ def test_malformed_docx_fails_safely(api):
 
 
 def test_parser_timeout_is_contained(api, monkeypatch):
-    from tensor_ops.ingestion import extract
-    from tensor_ops.services import evidence as svc
+    from RegDelta_ops.ingestion import extract
+    from RegDelta_ops.services import evidence as svc
 
     def boom(path, kind):  # noqa: ANN001
         raise extract.ExtractionError("parser timeout")
@@ -90,8 +90,8 @@ def test_parser_timeout_is_contained(api, monkeypatch):
 
 def test_real_sandbox_kills_runaway_parser(monkeypatch):
     """The child process runs with a CPU limit and wall-clock timeout."""
-    from tensor_ops.config import get_settings
-    from tensor_ops.ingestion.extract import ExtractionError, run_extraction
+    from RegDelta_ops.config import get_settings
+    from RegDelta_ops.ingestion.extract import ExtractionError, run_extraction
     s = get_settings()
     object.__setattr__(s, "extract_timeout_s", 1)
     try:
@@ -127,8 +127,8 @@ def test_upload_session_rules(api):
 
 
 def test_scanner_outage_fails_closed_then_retries(api, monkeypatch):
-    from tensor_ops.ingestion.scanner import DevScanner, ScanError
-    from tensor_ops.services import evidence as svc
+    from RegDelta_ops.ingestion.scanner import DevScanner, ScanError
+    from RegDelta_ops.services import evidence as svc
     calls = {"n": 0}
 
     class Flaky(DevScanner):
@@ -142,7 +142,7 @@ def test_scanner_outage_fails_closed_then_retries(api, monkeypatch):
     sess = api.ok("client_a", "POST", "/v1/evidence/upload-sessions", json={
         "engagement_id": eng["id"], "title": "retry", "filename": "r.txt", "size_bytes": len(MFA_POLICY)})
     api.ok("client_a", "PUT", f"{sess['upload_url']}?token={sess['upload_token']}", content=MFA_POLICY.encode())
-    from tensor_ops.jobs.queue import claim, run_job
+    from RegDelta_ops.jobs.queue import claim, run_job
     jid = claim(["ingest_evidence"])
     assert run_job(jid) == "queued"  # failed attempt, re-queued with backoff
     ev = api.ok("client_a", "GET", f"/v1/evidence/{sess['evidence_id']}")
@@ -153,8 +153,8 @@ def test_scanner_outage_fails_closed_then_retries(api, monkeypatch):
 
 
 def test_ingest_retry_is_idempotent(api):
-    from tensor_ops.db import new_session
-    from tensor_ops.services.evidence import process_ingest
+    from RegDelta_ops.db import new_session
+    from RegDelta_ops.services.evidence import process_ingest
     eng = api.engagement("acme")
     ev = api.upload("client_a", eng["id"], "idem.txt", ("idempotent " + MFA_POLICY).encode())
     with new_session(tenant_ids=[api.ids["acme"]]) as s:

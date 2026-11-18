@@ -121,7 +121,7 @@ Work on one phase at a time. Each phase has a concrete completion gate. A phase 
 
 **Purpose:** make sure the team is building the RegDelta product described here and can run the repository.
 
-**Work:** inventory the repository and current behavior; identify the current application/framework/database; compare it with this specification; agree on source documents, licences, demo client data, deployment, model provider, ownership, and a target schedule; define a minimum end-to-end vertical slice and task owners. Do not silently treat the existing Tensor Operations Console as RegDelta functionality.
+**Work:** inventory the repository and current behavior; identify the current application/framework/database; compare it with this specification; agree on source documents, licences, demo client data, deployment, model provider, ownership, and a target schedule; define a minimum end-to-end vertical slice and task owners. Do not silently treat the existing RegDelta Operations Console as RegDelta functionality.
 
 **Complete when:** the agreed architecture and scope are recorded; each phase has an owner; the app starts from documented steps; source/data licensing decisions and the demo boundary are recorded; repository gaps and any reuse/replacement decision are explicit.
 

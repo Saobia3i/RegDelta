@@ -31,7 +31,7 @@ def _brand(s: Session, tenant: Tenant) -> dict[str, str]:
         p = s.get(Partner, tenant.partner_id)
         if p:
             return {"name": p.brand_name, "color": p.brand_color, "delivered_by": f"Delivered by {p.brand_name}"}
-    return {"name": "TensorInfoSec", "color": "#b42318", "delivered_by": "Delivered by TensorInfoSec"}
+    return {"name": "RegDeltaInfoSec", "color": "#b42318", "delivered_by": "Delivered by RegDeltaInfoSec"}
 
 
 def _controls(s: Session, eng: Engagement) -> list[tuple[EngagementControl, Control]]:
@@ -75,7 +75,7 @@ def build(s: Session, eng: Engagement, kind: str) -> dict[str, Any]:
     sos = _signoffs(s, eng)
     base = {"kind": kind, "engagement": eng.name, "client": tenant.name, "frameworks": eng.frameworks,
             "generated_at": datetime.now(timezone.utc).isoformat(), "brand": _brand(s, tenant),
-            "basis": "Built only from evidence approved by a named Tensor reviewer. Items marked RECOMMENDATION or "
+            "basis": "Built only from evidence approved by a named RegDelta reviewer. Items marked RECOMMENDATION or "
                      "OPEN are not findings of fact.",
             "disclaimer": "Readiness deliverable. Not an audit opinion, SOC 2 report or ISO certificate."}
     if kind == "evidence_index":

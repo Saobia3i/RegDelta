@@ -13,6 +13,7 @@ import { SnapshotList, SnapshotNew, SnapshotDetail } from "./pages/Snapshots";
 import QuestionnairePage from "./pages/Questionnaire";
 import Library from "./pages/Library";
 import ExecutiveReport from "./pages/Report";
+import RegulatoryChanges from "./pages/RegulatoryChanges";
 
 const saved = getTheme();
 if (saved) document.documentElement.dataset.theme = saved;
@@ -28,18 +29,18 @@ function Shell({ me, children }: { me: Me; children: React.ReactNode }) {
   const staff = me.is_staff;
   const roles = [...new Set(me.memberships.map((m) => m.role))];
   const links: [string, string][] = staff
-    ? [["", "Dashboard"], ["queue", "Review queue"], ["engagements", "Engagements"], ["snapshots", "Readiness snapshots"], ["library", "Control library"]]
+    ? [["", "Dashboard"], ["regulatory", "Regulatory changes"], ["queue", "Review queue"], ["engagements", "Engagements"], ["snapshots", "Readiness snapshots"], ["library", "Control library"]]
     : [["engagements", roles.includes("auditor") ? "Engagements (read-only)" : "My compliance program"]];
   return (
     <div className="shell">
       <aside className="side">
-        <div className="brand"><span className="dot" />RegDelta</div>
+        <a className="brand" href="#/" aria-label="RegDelta home"><img src="/regdelta-logo.png" alt="RegDelta" /></a>
         <nav className="nav">
           {links.map(([k, l]) => <a key={k} href={`#/${k}`} className={sec === k ? "active" : ""}>{l}</a>)}
         </nav>
         <div className="who">
           <b>{me.name}</b>{me.email}<br />
-          <span className="muted">{staff ? (me.expert_title || "Tensor staff") : roles.join(", ").replace(/_/g, " ")}</span><br />
+          <span className="muted">{staff ? (me.expert_title || "RegDelta staff") : roles.join(", ").replace(/_/g, " ")}</span><br />
           <div className="row" style={{ marginTop: 8, gap: 6 }}><ThemeToggle />
             <button className="btn sm" onClick={() => { setToken(null); go("/login"); location.reload(); }}>Sign out</button></div>
         </div>
@@ -56,6 +57,7 @@ function Routes({ me }: { me: Me }) {
   switch (a) {
     case undefined: case "": return <Dashboard />;
     case "queue": return <Queue />;
+    case "regulatory": return me.is_staff ? <RegulatoryChanges /> : <p className="err">Regulatory change workspaces are available to delivery staff.</p>;
     case "engagements": return b ? <EngagementPage id={b} tab={c} /> : <Engagements />;
     case "evidence": return <EvidencePage id={b} />;
     case "snapshots": return b === "new" ? <SnapshotNew /> : b ? <SnapshotDetail id={b} /> : <SnapshotList />;
@@ -74,6 +76,11 @@ function App() {
     if (!hasToken()) { setMe(null); return; }
     api.get<Me>("/v1/me").then(setMe).catch(() => setMe(null));
   }, [n, r[0] === "login"]);
+  if (import.meta.env.DEV && r[0] === "regulatory" && !hasToken()) {
+    const localMe: Me = { id: "local-regdelta-reviewer", email: "reviewer@localhost", name: "Local reviewer", is_staff: true,
+      can_sign: false, expert_title: "Local development session", mfa: false, memberships: [] };
+    return <MeCtx.Provider value={localMe}><Shell me={localMe}><RegulatoryChanges /></Shell></MeCtx.Provider>;
+  }
   if (r[0] === "login" || !hasToken()) return <Login onIn={() => { setN((x) => x + 1); go("/"); }} />;
   if (!me) return <p style={{ padding: 40 }} className="muted">Loading…</p>;
   return <MeCtx.Provider value={me}><Shell me={me}><Routes me={me} /></Shell></MeCtx.Provider>;

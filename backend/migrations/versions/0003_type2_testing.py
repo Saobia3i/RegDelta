@@ -56,7 +56,7 @@ def upgrade() -> None:
         sa.Column("title", sa.String(200), nullable=False), sa.Column("planned_date", sa.Date(), nullable=False),
         sa.Column("completed_on", sa.Date()), sa.Column("ordinal", sa.Integer(), nullable=False), *_ts())
     for t in NEW:
-        op.execute(f"GRANT SELECT, INSERT, UPDATE, DELETE ON {t} TO tensor_app")
+        op.execute(f"GRANT SELECT, INSERT, UPDATE, DELETE ON {t} TO RegDelta_app")
         op.execute(f"ALTER TABLE {t} ENABLE ROW LEVEL SECURITY")
         op.execute(f"CREATE POLICY {t}_tenant_isolation ON {t} USING (tenant_id = ANY({SCOPE})) WITH CHECK (tenant_id = ANY({SCOPE}))")
 

@@ -1,4 +1,4 @@
-"""Worker process: `python -m tensor_ops.jobs.worker [--kinds ingest_evidence,ai_review_evidence]`.
+"""Worker process: `python -m RegDelta_ops.jobs.worker [--kinds ingest_evidence,ai_review_evidence]`.
 
 Run separate pools per job kind in production (ingestion, AI, connectors) with their own concurrency limits.
 """
@@ -16,7 +16,7 @@ from ..logging import configure_logging
 from . import handlers  # noqa: F401  (registers handlers)
 from .queue import claim, enqueue, run_job
 
-log = logging.getLogger("tensor.worker")
+log = logging.getLogger("RegDelta.worker")
 _stop = False
 
 

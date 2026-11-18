@@ -1,7 +1,7 @@
 """Restore verification: dump the database, restore it into a scratch database, and verify that evidence IDs,
 SHA-256 hashes and stored objects still agree (pack 08, critical test 10).
 
-    python deploy/restore_check.py --pg-host /tmp --source tensor --storage backend/var/objects
+    python deploy/restore_check.py --pg-host /tmp --source RegDelta --storage backend/var/objects
 
 Requires pg_dump/pg_restore and a role that can create databases (run by the operator, not the app).
 Exit code 0 = restore verified.
@@ -27,12 +27,12 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--pg-host", default="localhost")
     ap.add_argument("--pg-user", default="postgres")
-    ap.add_argument("--source", default="tensor")
-    ap.add_argument("--target", default="tensor_restore_check")
+    ap.add_argument("--source", default="RegDelta")
+    ap.add_argument("--target", default="RegDelta_restore_check")
     ap.add_argument("--storage", required=True)
     a = ap.parse_args()
     base = f"host={a.pg_host} user={a.pg_user}"
-    dump = os.path.join(tempfile.mkdtemp(), "tensor.dump")
+    dump = os.path.join(tempfile.mkdtemp(), "RegDelta.dump")
     subprocess.run(["pg_dump", "-h", a.pg_host, "-U", a.pg_user, "-Fc", "-f", dump, a.source], check=True)  # noqa: S603,S607
     with psycopg.connect(f"{base} dbname=postgres", autocommit=True) as c:
         c.execute(f'DROP DATABASE IF EXISTS "{a.target}"')

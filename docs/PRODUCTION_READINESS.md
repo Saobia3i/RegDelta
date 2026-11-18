@@ -63,7 +63,7 @@ Nothing listed as open has been claimed as done.
    a secret manager adapter in `connectors/secrets.py`, ClamAV sidecar, separate prod account, IaC, TLS, WAF.
    Add a shared rate-limit store (Redis) when running more than one API replica.
 5. **Expert-labelled evaluation corpus.** Aim for 100+ examples per common document type, with thresholds agreed with the
-   quality reviewer. Run `evals` against the real model before enabling `TENSOR_AI_PROVIDER=anthropic` for clients.
+   quality reviewer. Run `evals` against the real model before enabling `RegDelta_AI_PROVIDER=anthropic` for clients.
 6. **Legal.** Counsel to review the client contract (scope, "readiness not certification", liability, guarantee wording), the DPA,
    subprocessors (the model provider is one), cross-border access from Bangladesh/Nepal, retention periods and breach notification.
 7. **Auditor fees.** Fill `PRICE_BOOK["auditor_fee_estimate"]` from the partner audit firm, or quotes keep showing "to be confirmed".
@@ -73,7 +73,7 @@ Nothing listed as open has been claimed as done.
 
 ## 4. Decisions that need a human (from Prompt 0, item 7)
 
-- Which frameworks Tensor commits to in contracts for the first 5 founding clients (the plan says SOC 2 first).
+- Which frameworks RegDelta commits to in contracts for the first 5 founding clients (the plan says SOC 2 first).
 - Who is the named signer for each engagement, and what credentials are shown on sign-offs.
 - Retention periods per contract (the default here is 730 days) and whether clients may opt out of AI processing.
 - Which model provider and region are acceptable to clients. Turn off provider-side data retention where offered.

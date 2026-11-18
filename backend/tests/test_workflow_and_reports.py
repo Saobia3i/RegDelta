@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
-from tensor_ops.db import admin_session, new_session
+from RegDelta_ops.db import admin_session, new_session
 
 from .conftest import ACCESS_REVIEW, MFA_POLICY
 

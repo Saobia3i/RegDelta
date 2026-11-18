@@ -172,7 +172,7 @@ function Policies({ eng, me }: P) {
   return <div className="split">
     <div>
       {staff && <div className="card" style={{ marginBottom: 14 }}>
-        <h3>Draft a policy from a Tensor template</h3>
+        <h3>Draft a policy from a RegDelta template</h3>
         <select value={key} onChange={(e) => { setKey(e.target.value); setParams({}); }}><option value="">Choose template…</option>
           {(tpl.data || []).map((x) => <option key={x.key} value={x.key}>{x.title}</option>)}</select>
         {t && <div className="grid g2" style={{ marginTop: 10 }}>{t.parameters.filter((p: string) => p !== "company_name").map((p: string) =>
