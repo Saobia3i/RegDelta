@@ -27,6 +27,7 @@ from .routers import (
     metrics,
     policies,
     questionnaires,
+    regulatory,
     reports,
     snapshots,
     tenants,
@@ -80,7 +81,7 @@ def create_app() -> FastAPI:
         except Exception:  # noqa: BLE001
             return JSONResponse({"status": "db_unavailable"}, status_code=503)
 
-    for r in (me, dev, assurance, tenants, engagements, controls, evidence, ai, work, questionnaires, snapshots, policies,
+    for r in (me, dev, assurance, tenants, engagements, controls, evidence, ai, regulatory, work, questionnaires, snapshots, policies,
               reports, connectors, metrics, deletion):
         app.include_router(r.router, prefix="/v1")
 

@@ -21,13 +21,13 @@ services:
       RegDelta_STORAGE_DIR: /app/var/objects
       RegDelta_SCANNER: clamav
       RegDelta_CLAMD_HOST: clamav
-      RegDelta_AI_PROVIDER: ${RegDelta_AI_PROVIDER:-mock}
+      RegDelta_AI_PROVIDER: ${RegDelta_AI_PROVIDER:-${TENSOR_AI_PROVIDER:-mock}}
       RegDelta_ANTHROPIC_API_KEY: ${RegDelta_ANTHROPIC_API_KEY:-}
-      RegDelta_OPENROUTER_API_KEY: ${RegDelta_OPENROUTER_API_KEY:-${RegDelta_OPENROUTER_API:-}}
+      RegDelta_OPENROUTER_API_KEY: ${RegDelta_OPENROUTER_API_KEY:-${RegDelta_OPENROUTER_API:-${TENSOR_OPENROUTER_API:-${TENSOR_OPENROUTER_API_KEY:-}}}}
       RegDelta_OPENROUTER_BASE_URL: ${RegDelta_OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       RegDelta_OPENROUTER_REFERER: ${RegDelta_OPENROUTER_REFERER:-}
       RegDelta_OPENROUTER_APP_TITLE: ${RegDelta_OPENROUTER_APP_TITLE:-RegDelta}
-      RegDelta_AI_MODEL: ${RegDelta_AI_MODEL:-}
+      RegDelta_AI_MODEL: ${RegDelta_AI_MODEL:-${TENSOR_AI_MODEL:-}}
     volumes: ["objects:/app/var/objects"]
     depends_on: { db: { condition: service_healthy } }
   api:

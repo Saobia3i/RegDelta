@@ -6,6 +6,27 @@
 
 RegDelta detects changes between versions of a regulation or framework, shows what each change means for a client’s policies, drafts policy updates and technical fix tasks with source evidence, verifies every quoted source passage in code, and waits for a person to approve before anything becomes final or causes an external action.
 
+## Existing application baseline and reuse
+
+RegDelta evolves the existing Tensor Operations Console codebase. Its existing modules are retained as the application foundation and should not be removed while the regulatory-change workflow is added. They are legacy compliance-delivery capabilities, not proof that regulatory-change analysis is implemented.
+
+| Existing area | Existing capability in the repository | Current UI entry |
+|---|---|---|
+| Portfolio dashboard | Readiness and engagement metrics, review queue counts, snapshots, delivery economics | Dashboard |
+| Review operations | Expert review queue and evidence decisions | Review queue |
+| Client work | Engagement lifecycle and client program workspaces | Engagements |
+| Assurance | Controls explorer, testing, exceptions, spreadsheet import | Engagement tabs: Controls, Testing, Import centre |
+| Evidence operations | Upload, processing status, evidence review, evidence requests | Engagement tabs: Evidence, Requests |
+| Remediation | Remediation tasks and closure verification | Engagement tabs: Remediation |
+| AI-assisted workflows | Evidence review and questionnaire answer drafting through the existing backend provider abstraction | Engagement tabs: Questionnaires; Review queue |
+| Policy management | Policy templates, drafts, approvals and publication workflow | Engagement tabs: Policies |
+| Reporting | Executive reports and scoped client deliverables | Engagement tabs: Reports; report route |
+| Integrations and governance | Connectors, audit events, time entries and economics | Engagement tabs: Connectors, Audit log, Time & economics |
+| Readiness sales workflow | Readiness snapshots, named sign-off and conversion to engagement | Readiness snapshots |
+| Reference library and analytics | Control/framework reference library and analytics views | Control library; engagement overview |
+
+The **Regulatory changes** workspace is a new staff workflow inside the same shell. It does not replace those modules. Its original-file analysis flow uses an authenticated FastAPI endpoint, the existing AI provider abstraction, tenant-scoped AI run logging, and the existing PostgreSQL schema. Existing database-dependent screens still require the FastAPI backend and PostgreSQL to be running; the local development reviewer session only allows navigation and must not be mistaken for backend authentication or persisted data.
+
 ## 2. Problem and users
 
 Compliance consultants repeatedly read long regulatory updates, identify changed requirements, compare them with each client’s policies, and prepare policy edits and remediation work. This work consumes time and can miss changes. A general-purpose chatbot is not sufficient because it can invent requirement identifiers, source text, and citations.

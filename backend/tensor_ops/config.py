@@ -15,6 +15,14 @@ def _env(name: str, default: str | None = None) -> str | None:
     return v if v not in (None, "") else default
 
 
+def _env_first(*names: str, default: str | None = None) -> str | None:
+    for name in names:
+        value = os.environ.get(name)
+        if value not in (None, ""):
+            return value
+    return default
+
+
 def _int(name: str, default: int) -> int:
     return int(_env(name, str(default)))  # type: ignore[arg-type]
 
@@ -124,13 +132,15 @@ def get_settings() -> Settings:
         clamd_host=_env("RegDelta_CLAMD_HOST", "localhost"),  # type: ignore[arg-type]
         clamd_port=_int("RegDelta_CLAMD_PORT", 3310),
         extract_timeout_s=_int("RegDelta_EXTRACT_TIMEOUT_S", 30),
-        ai_provider=_env("RegDelta_AI_PROVIDER", "mock"),  # type: ignore[arg-type]
+        ai_provider=_env_first("RegDelta_AI_PROVIDER", "TENSOR_AI_PROVIDER", default="mock"),  # type: ignore[arg-type]
         anthropic_api_key=_env("RegDelta_ANTHROPIC_API_KEY") or _env("ANTHROPIC_API_KEY"),
-        openrouter_api_key=_env("RegDelta_OPENROUTER_API_KEY") or _env("RegDelta_OPENROUTER_API") or _env("OPENROUTER_API_KEY"),
+        openrouter_api_key=_env_first("RegDelta_OPENROUTER_API_KEY", "RegDelta_OPENROUTER_API",
+                                      "TENSOR_OPENROUTER_API", "TENSOR_OPENROUTER_API_KEY", "OPENROUTER_API_KEY"),
         openrouter_base_url=_env("RegDelta_OPENROUTER_BASE_URL", Settings.openrouter_base_url),  # type: ignore[arg-type]
         openrouter_referer=_env("RegDelta_OPENROUTER_REFERER"),
         openrouter_app_title=_env("RegDelta_OPENROUTER_APP_TITLE", "RegDelta"),  # type: ignore[arg-type]
-        ai_model=_env("RegDelta_AI_MODEL", "" if _env("RegDelta_AI_PROVIDER", "mock") == "openrouter" else Settings.ai_model),  # type: ignore[arg-type]
+        ai_model=_env_first("RegDelta_AI_MODEL", "TENSOR_AI_MODEL",
+                            default="" if _env_first("RegDelta_AI_PROVIDER", "TENSOR_AI_PROVIDER", default="mock") == "openrouter" else Settings.ai_model),  # type: ignore[arg-type]
         ai_job_budget_usd=_float("RegDelta_AI_JOB_BUDGET_USD", 0.50),
         ai_tenant_daily_budget_usd=_float("RegDelta_AI_TENANT_DAILY_BUDGET_USD", 20.0),
         ai_price_in_per_mtok=_float("RegDelta_AI_PRICE_IN_PER_MTOK", 3.0),

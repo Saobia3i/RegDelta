@@ -76,10 +76,10 @@ function App() {
     if (!hasToken()) { setMe(null); return; }
     api.get<Me>("/v1/me").then(setMe).catch(() => setMe(null));
   }, [n, r[0] === "login"]);
-  if (import.meta.env.DEV && r[0] === "regulatory" && !hasToken()) {
+  if (import.meta.env.DEV && r[0] !== "login" && !hasToken()) {
     const localMe: Me = { id: "local-regdelta-reviewer", email: "reviewer@localhost", name: "Local reviewer", is_staff: true,
       can_sign: false, expert_title: "Local development session", mfa: false, memberships: [] };
-    return <MeCtx.Provider value={localMe}><Shell me={localMe}><RegulatoryChanges /></Shell></MeCtx.Provider>;
+    return <MeCtx.Provider value={localMe}><Shell me={localMe}><Routes me={localMe} /></Shell></MeCtx.Provider>;
   }
   if (r[0] === "login" || !hasToken()) return <Login onIn={() => { setN((x) => x + 1); go("/"); }} />;
   if (!me) return <p style={{ padding: 40 }} className="muted">Loading…</p>;
