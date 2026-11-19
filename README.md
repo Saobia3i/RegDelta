@@ -122,7 +122,7 @@ penetration test, expert validation of control mappings, legal review of the con
 - **Sadman Saqib** — Backend
 - **Farhana Rahman** — Frontend
 - **Abrar Jahin** — Business Analyst
-- **Mohammad Rahman** — Senior Dev Lead at Telus Communications (NRB) *(guided us in the technical side as Technical Lead)*
+- **Mohammad Rahman** — Senior Dev at Telus Communications (NRB) *(guided us in the technical side as Technical Lead)*
 
 
 
