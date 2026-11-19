@@ -115,5 +115,15 @@ This is a working, tested build of the full platform scope. **It is not certifie
 [`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md) for the gates that still need a qualified human:
 penetration test, expert validation of control mappings, legal review of the contract and DPA, an IdP, and cloud deployment.
 
+## 👥 Team CrossOrigin
+
+- **Saobia Islam** — Team Lead, AI/ML
+- **Rafat Abdullah Pantho** — Backend
+- **Sadman Saqib** — Backend
+- **Farhana Rahman** — Frontend
+- **Abrar Jahin** — Business Analyst
+- **Mohammad Rahman** — Senior Dev Lead at Telus Communications (NRB) *(guided us in the technical side as Technical Lead)*
+
+
 
 

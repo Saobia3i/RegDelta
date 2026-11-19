@@ -312,3 +312,17 @@ pm.cmd run build completed successfully (TypeScript check and Vite production bu
 - Added 02:22 model/results and 02:30 baseline-to-target KPI cards. Every unmeasured value remains TBA; no invented baselines, targets, model metrics, cost, or latency.
 - Tagline `শনাক্ত করুন • যাচাই করুন • মেনে চলুন` is marked pending review by a Bangla speaker.
 - Recorded a production gate: the current upload-and-summary UI cannot truthfully produce the entire requested nine-shot flow. Source polling, the sample-policy impact-map UI, regulatory approve/edit/reject, and GitHub issue creation remain unavailable; AI output is also currently rate-limited (OpenRouter 429). The script is a target storyboard, not a claim those shots have been recorded.
+
+### Team CrossOrigin Attribution Updated — 2026-11-19
+- **Status:** Complete
+- **Context:** User requested updating the project `README.md` to document Team CrossOrigin and its members and roles.
+- **Changes Made:**
+  - Added `## 👥 Team CrossOrigin` section to [`README.md`](README.md) listing:
+    - Saobia Islam (Team Lead, AI/ML)
+    - Rafat Abdullah Pantho (Backend)
+    - Sadman Saqib (Backend)
+    - Farhana Rahman (Frontend)
+    - Abrar Jahin (Business Analyst)
+    - Mohammad Rahman, Senior Dev Lead at Telus Communications (NRB) (guided as Technical Lead)
+- **Verification:** Read back `README.md` to ensure exact phrasing and layout.
+
